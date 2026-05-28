@@ -19,27 +19,27 @@ QuecDuino入门级传感器实验套件，是专为初学者、创客及教育�
 
 ### **案例清单**
 
-| 序号 | 案例模块                                                     |
-| ---- | ------------------------------------------------------------ |
-| 01   | [LED 灯模块](example/01-LED灯/README.md)                     |
-| 02   | [单按键模块](example/02-按键中断/README.md)                  |
-| 03   | [RGB 灯珠模块](example/03-全彩LED/README.md)                 |
-| 04   | [MIC模块](example/04-麦克风(MIC)/README.md)                  |
-| 05   | [蜂鸣器模块](example/05-蜂鸣器模块(buzzer)/README.md)        |
-| 06   | [水位监测模块](example/06-水位检测模块/README.md)            |
-| 07   | [磁簧开关模块(KY-025)](example/07-磁簧开关(KY-025)/README.md) |
-| 08   | [障碍物检测模块(KY-032)](example/08-障碍物检测(KY-032)/README.md) |
-| 09   | [迷你磁簧(KY-021)](example/09-迷你磁簧(KY-021)/README.md)    |
-| 10   | [光敏电阻模块(KY-018)](example/10-光敏电阻模块(KY-018)/README.md) |
-| 11   | [火焰检测模块（KY-026）](example/11-火焰检测(KY-026)/README.md) |
-| 12   | [魔术光环模块（KY-027）](example/12-魔术光环模块(KY-027)/README.md) |
-| 13   | [倾斜模块（KY-020）](example/13-倾斜开关(KY-020)/README.md)  |
-| 14   | [超声波模块(HC-SR04)](example/14-超声波模块(HC-SR04)/README.md) |
-| 15   | [人体触碰模块(KY-036)](example/15-人体触碰模块(KY-036)/README.md) |
-| 16   | [数码管模块(JY005)](example/16-数码管模块(JY005)/README.md)  |
-| 17   | [激光发射模块(KY-008)](example/17-激光发射器(KY-008)/README.md) |
-| 18   | [水银开关模块(KY-017)](example/18-水银开关(KY-017)/README.md) |
-| 19   | [温湿度传感器(AHT20)](example/19-温湿度传感器(AHT20)/README.md) |
+| 序号 | 案例模块                                                     | 描述                                                         |
+| ---- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| 01   | [LED 灯模块](example/01-LED灯/README.md)                     | 基础 IO 输出控制案例，通过高低电平实现 LED 亮灭，是嵌入式入门最基础的数字输出实践。 |
+| 02   | [单按键模块](example/02-按键中断/README.md)                  | 基础 IO 输入检测案例，实现按键按下 / 松开、消抖、长按 / 短按等逻辑，学习按键状态识别与防抖处理。 |
+| 03   | [RGB 灯珠模块](example/03-全彩LED/README.md)                 |                                                              |
+| 04   | [MIC模块](example/04-麦克风(MIC)/README.md)                  |                                                              |
+| 05   | [蜂鸣器模块](example/05-蜂鸣器模块(buzzer)/README.md)        |                                                              |
+| 06   | [水位监测模块](example/06-水位检测模块/README.md)            |                                                              |
+| 07   | [磁簧开关模块(KY-025)](example/07-磁簧开关(KY-025)/README.md) |                                                              |
+| 08   | [障碍物检测模块(KY-032)](example/08-障碍物检测(KY-032)/README.md) |                                                              |
+| 09   | [迷你磁簧(KY-021)](example/09-迷你磁簧(KY-021)/README.md)    |                                                              |
+| 10   | [光敏电阻模块(KY-018)](example/10-光敏电阻模块(KY-018)/README.md) |                                                              |
+| 11   | [火焰检测模块（KY-026）](example/11-火焰检测(KY-026)/README.md) |                                                              |
+| 12   | [魔术光环模块（KY-027）](example/12-魔术光环模块(KY-027)/README.md) |                                                              |
+| 13   | [倾斜模块（KY-020）](example/13-倾斜开关(KY-020)/README.md)  |                                                              |
+| 14   | [超声波模块(HC-SR04)](example/14-超声波模块(HC-SR04)/README.md) |                                                              |
+| 15   | [人体触碰模块(KY-036)](example/15-人体触碰模块(KY-036)/README.md) |                                                              |
+| 16   | [数码管模块(JY005)](example/16-数码管模块(JY005)/README.md)  |                                                              |
+| 17   | [激光发射模块(KY-008)](example/17-激光发射器(KY-008)/README.md) |                                                              |
+| 18   | [水银开关模块(KY-017)](example/18-水银开关(KY-017)/README.md) |                                                              |
+| 19   | [温湿度传感器(AHT20)](example/19-温湿度传感器(AHT20)/README.md) |                                                              |
 
 # EG800Z Duino 开发板固件烧录&使用指导
 
