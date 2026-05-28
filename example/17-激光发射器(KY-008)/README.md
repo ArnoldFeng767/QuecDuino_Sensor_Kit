@@ -14,15 +14,7 @@
 | Module（-） | GND          |
 | Module（S） | PIN4(GPIO31) |
 
- 
-
-![](../media/laser1.png)
-
-## 三、 操作步骤
-
-请参考目录中的开发指导手册
-
-![](../media/test1.png)
+![](../../media/laser1.png)
 
 ## 四、 驱动代码
 

@@ -25,13 +25,11 @@ HC-SR04 的工作流程由 “触发信号” 启动，通过 “回响信号”
 
 **2、原理图**
 
-![](../media/hc1.png)
-
- 
+![](../../media/hc1.png)
 
 **3、时序图**
 
-![](../media/hc2.png)
+![](../../media/hc2.png)
 
  
 
@@ -46,15 +44,9 @@ HC-SR04 的工作流程由 “触发信号” 启动，通过 “回响信号”
 | Ultrasonic（Echo） | Pin4(GPIO31) |
 | Ultrasonic（-）    | GND          |
 
-![](../media/hc3.png)
+![](../../media/hc3.png)
 
-## 三、 操作步骤
-
-请参考目录中的开发指导手册
-
-![](../media/test1.png)
-
-## **四、** **驱动代码**
+## **三、** **驱动代码**
 
 ```python
 from machine import Pin

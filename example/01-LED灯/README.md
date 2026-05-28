@@ -6,11 +6,11 @@ LED原理及产业分类LED是发光二极体( Light EmitTIng Diode, LED)的简�
 
 **LED组成：**
 
-![](../media/led1.png)
+![](../../media/led1.png)
 
 **发光原理：**
 
-![](../media/led2.png)
+![](../../media/led2.png)
 
 左为正极，右为负极。当正负极形成电压差时，LED点亮。
 
@@ -26,15 +26,9 @@ LED原理及产业分类LED是发光二极体( Light EmitTIng Diode, LED)的简�
 
  
 
-![](../media/led3.png)
+![](../../media/led3.png)
 
-## 三、 操作步骤
-
-请参考目录中的开发指导手册
-
-![](../media/test1.png)
-
-## 四、 驱动代码
+## 三、 驱动代码
 
 ```python
 from machine import Pin

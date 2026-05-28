@@ -26,7 +26,7 @@
 
 **发声原理：**
 
-![](../media/buzzer1.png)
+![](../../media/buzzer1.png)
 
 有源蜂鸣器模块低电平触发，通过配置I/O口，给它低电平即可发声。可见电路图如上
 
@@ -40,17 +40,9 @@
 | BUZZER（-） | GND          |
 | BUZZER（S） | PIN4(GPIO31) |
 
- 
+![](../../media/buzzer2.png)
 
-![](../media/buzzer2.png)
-
-## 三、 操作步骤
-
-请参考目录中的开发指导手册
-
-![](../media/test1.png)
-
-## 四、 驱动代码
+## 三、 驱动代码
 
 ```python
 from machine import Pin

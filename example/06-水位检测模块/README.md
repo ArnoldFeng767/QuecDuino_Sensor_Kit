@@ -18,17 +18,9 @@ Water Sensor水位传感器能够监测水位。该模块主要是利用三极�
 | 模块（-） | GND        |
 | 模块（S） | A1（ADC1） |
 
- 
+![](../../media/water1.png)
 
-![](../media/water1.png)
-
-## 三、 操作步骤
-
-请参考目录中的开发指导手册
-
-![](../media/test1.png)
-
-## 四、 驱动代码
+## 三、 驱动代码
 
 ```python
 def fun():

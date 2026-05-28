@@ -19,17 +19,9 @@
 | AHT20（SCL） | PIN17（SCL） |
 | AHT20（SDA） | PIN16（SDA） |
 
- 
+![](../../media/aht20.png)
 
-![](../media/aht20.png)
-
-## 三、 操作步骤
-
-请参考目录中的开发指导手册
-
-![](../media/test1.png)
-
-## 四、 驱动代码
+## 三、 驱动代码
 
 ```python
 from machine import I2C 

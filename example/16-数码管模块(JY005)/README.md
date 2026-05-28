@@ -22,17 +22,9 @@
 | LED（-） | GND    |
 | LED（S） | 自选   |
 
- 
+![](../../media/display1.png)
 
-![](../media/display1.png)
-
-## 三、 操作步骤
-
-请参考目录中的开发指导手册
-
-![](../media/test1.png)
-
-## 四、 驱动代码
+## 三、 驱动代码
 
 ```
 /# 初始化数码管各段 GPIO

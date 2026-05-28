@@ -19,17 +19,9 @@ LED引脚共地，当正负极形成电压差时，LED点亮，所以高电平LE
 | LED（G） | PIN5（GPIO30） |
 | LED（B） | PIN6（GPIO32） |
 
- 
+![](../../media/led4.png)
 
-![](../media/led4.png)
-
-## 三、 操作步骤
-
-请参考目录中的开发指导手册
-
-![](../media/test1.png)
-
-## 四、 驱动代码
+## 三、 驱动代码
 
 ```python
 R_PIN = 32

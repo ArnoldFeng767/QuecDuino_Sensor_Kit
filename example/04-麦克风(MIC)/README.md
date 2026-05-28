@@ -14,17 +14,9 @@
 | MIC（-） | GND      |
 | MIC（S） | A1(ADC1) |
 
- 
+![](../../media/mic1.png) 
 
-![](../media/mic1.png) 
-
-## 三、 操作步骤
-
-请参考目录中的开发指导手册
-
-![](../media/test1.png)
-
-## 四、 驱动代码
+## 三、 驱动代码
 
 ```python
 def fun():

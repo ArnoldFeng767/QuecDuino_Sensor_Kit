@@ -6,13 +6,11 @@
 
 **模块组成：**
 
-![](../media/obstacle1.png)
+![](../../media/obstacle1.png)
 
 **工作原理：**
 
 工作原理是红外光 线发射管**发射红外光线**，红外光线接收管**接收红外光线**，当**没有接收到返回的红外光线**时，OUT引脚输出**高电平**，当**接收到返回的红外光线时**，OUT引脚输出**低电平**。
-
-
 
 ## 二、 连接示例
 
@@ -24,17 +22,9 @@
 | 模块（-） | GND          |
 | 模块（S） | PIN4(GPIO31) |
 
- 
+![](../../media/obstacle2.png)
 
-![](../media/obstacle2.png)
-
-## 三、 操作步骤
-
-请参考目录中的开发指导手册
-
-![](../media/test1.png)
-
-## 四、 驱动代码
+## 三、 驱动代码
 
 ```python
 gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_DISABLE)
