@@ -2,6 +2,8 @@
 
 ### **roduct Introduction**
 
+![](media/俯视图.jpg)
+
 This is an entry-level experiment kit built by deeply integrating the EG800Z series QuecDuino development board with over twenty types of sensors and actuators.
 
 The QuecDuino Entry-Level Sensor Experiment Kit is a one-stop development platform tailored for beginners, makers, and the education sector. It perfectly inherits the ease-of-use DNA of Arduino open-source hardware and innovatively integrates Quectel's leading cellular network technology, enabling your IoT ideas to become reality without tedious configuration.
