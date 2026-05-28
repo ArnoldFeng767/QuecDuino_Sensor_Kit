@@ -2,7 +2,9 @@
 
 ### **产品介绍**
 
-这是一款由EG800Z系列QuecDuino开发板与二十余种传感器及执行器深度融合打造的入门级实验套件。QuecDuino入门级传感器实验套件，是专为初学者、创客及教育领域量身定制的一站式开发平台。它完美继承了Arduino开源硬件的易用基因，并创新性地集成了**移远通信（Quectel）**领先的蜂窝网络技术，让您的物联网构想摆脱繁琐配置，轻松照进现实。
+这是一款由EG800Z系列QuecDuino开发板与二十余种传感器及执行器深度融合打造的入门级实验套件。
+
+QuecDuino入门级传感器实验套件，是专为初学者、创客及教育领域量身定制的一站式开发平台。它完美继承了Arduino开源硬件的易用基因，并创新性地集成了**移远通信（Quectel）**领先的蜂窝网络技术，让您的物联网构想摆脱繁琐配置，轻松照进现实。
 
 **产品特点**
 
@@ -13,17 +15,27 @@
 
 ### **案例清单**
 
-| 序号 | 传感器       | 案例                              |
-| ---- | ------------ | --------------------------------- |
-| 01   | LED灯模块    | example/01-LED灯/led.py           |
-| 02   | 单按键模块   | example/02-按键中断/key_Extlnt.py |
-| 03   | RGB 灯珠模块 | example/03-全彩LED/rgb_led.py     |
-|      |              |                                   |
-|      |              |                                   |
-|      |              |                                   |
-|      |              |                                   |
-|      |              |                                   |
-|      |              |                                   |
+| 序号 | 传感器                 | 案例                                                      |
+| ---- | ---------------------- | --------------------------------------------------------- |
+| 01   | LED灯模块              | example/01-LED灯/led.py                                   |
+| 02   | 单按键模块             | example/02-按键中断/key_Extlnt.py                         |
+| 03   | RGB 灯珠模块           | example/03-全彩LED/rgb_led.py                             |
+| 04   | MIC模块                | example/04-麦克风(MIC)/MIC.py                             |
+| 05   | 蜂鸣器模块             | example/05-蜂鸣器模块(buzzer)/Buzzer.py                   |
+| 06   | 水位监测模块           | example/06-水位检测模块/water.py                          |
+| 07   | 磁簧开关模块(KY-025)   | example/07-磁簧开关(KY-025)/adc.py                        |
+| 08   | 障碍物检测模块(KY-032) | example/08-障碍物检测(KY-032)/obstacle_avoidance.py       |
+| 09   | 迷你磁簧(KY-021)       | example/09-迷你磁簧(KY-021)/mini_Electromagnetics.py      |
+| 10   | 光敏电阻模块(KY-018)   | example/10-光敏电阻模块(KY-018)/light.py                  |
+| 11   | 火焰检测模块（KY-026） | example/11-火焰检测(KY-026）/flame.py                     |
+| 12   | 魔术光环模块（KY-027） | example/12-魔术光环模块(KY-027)/mini_Electromagnetics.py  |
+| 13   | 倾斜模块（KY-020）     | example/13-倾斜开关(KY-020)/Inclination_switch.py         |
+| 14   | 超声波模块(HC-SR04)    | example/14-超声波模块(HC-SR04)/ultrasonic_gpio.py         |
+| 15   | 人体触碰模块(KY-036)   | example/15-人体触碰模块(KY-036)/Finger_touch_detection.py |
+| 16   | 数码管模块(JY005)      | example/16-数码管模块(JY005)/Display_LCD.py               |
+| 17   | 激光发射模块(KY-008)   | example/17-激光发射器(KY-008)/Laser_emitter.py            |
+| 18   | 水银开关模块(KY-017)   | example/18-水银开关(KY-017)/mercury_switch.py             |
+| 19   | 温湿度传感器(AHT20)    | example/19-温湿度传感器(AHT20)/AHT20.py                   |
 
 # EG800Z Duino 开发板固件烧录&使用指导
 
