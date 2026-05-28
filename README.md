@@ -13,6 +13,10 @@ QuecDuino入门级传感器实验套件，是专为初学者、创客及教育�
 - **工业级稳定性**：采用移远通信 (Quectel) 工业级模组，适应 -35℃ 到 85℃ 的宽温工作环境，不仅适合学习，也适合工业原型验证。
 - **传感器丰富**：多达数十种传感器外设供用户学习使用，丰富的硬件组合能完美还原真实的物联网开发需求。
 
+> !! 本仓库收录 QuecDuino 入门级传感器实验套件搭配使用的基于 QuecPython 开发平台的实验案例。
+>
+> 更多关于 QuecPython 平台开发方式，请访问 [QuecPython文档中心](https://developer.quectel.com/doc/quecpython/)
+
 ### **案例清单**
 
 | 序号 | 传感器                 | 案例                                                      |
@@ -93,9 +97,15 @@ QuecDuino入门级传感器实验套件，是专为初学者、创客及教育�
 
 *图6：固件烧录-固件升级成功*
 
-## 使用QPYCom 工具通过 REPL 口调试代码
+## 使用 QPYCom 工具
 
 > !! REPL全称为**Read-Eval-Print-Loop (交互式解释器)**，可以在REPL中进行 QuecPython 程序的调试，是 QPYCom 工具用于 QuecPython 平台提供的主要的开发调试方式。
+>
+> !! 访问 QuecPython 快速入门：https://developer.quectel.com/doc/quecpython/Getting_started/zh/index.html
+>
+> !! 更多 QPYCom 工具使用请访问：https://developer.quectel.com/doc/quecpython/Application_guide/zh/dev-tools/QPYcom/index.html
+
+### 通过 REPL 口调试代码
 
 运行 **QPYcom** 工具后，选择正确的串口（波特率无需指定）并打开，即可开始 Python 命令行交互。
 
@@ -115,3 +125,33 @@ hello world
 ```
 
 ![img](https://developer.quectel.com/doc/quecpython/Getting_started/zh/4G/media/readme/hello_world.png)
+
+### 脚本下载运行调试
+
+> !! 本仓库提供的 example 脚本文件，均可以下载至模组usr目录中并执行运行。
+
+如下图所示，直接将本地文件通过拖拽方式下载到模组usr目录下。
+
+![](media/QPYcom_drag.jpg)
+
+脚本下载流程：
+
+- **Step1：打开REPL串口**
+
+首先选择模组的交互口,点击“**打开串口**”按钮
+
+- **Step2：通过工具按钮下载**（可选）
+
+可以通过文件页面右侧上面的 "**+**","**-**" 按钮来上传和删除文件
+
+- **Step3：通过拖拽形式下载**（可选）
+
+也可以通过拖拽的方式将文件页面左侧显示的本地文件直接拖拽到右侧模组中去（也可以拖拽文件夹）
+
+- **Step4：下载进度和结果**
+
+下载过程中会在状态栏显示下载文件名和下载进度
+
+- **Step5：运行脚本**
+
+在右侧栏中右键脚本文件，并选择执行即可。
