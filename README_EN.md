@@ -29,20 +29,20 @@ The QuecDuino Entry-Level Sensor Experiment Kit is a one-stop development platfo
 | 04   | [Microphone (MIC) Module](example/04-mic/README.md)          |
 | 05   | [Buzzer Module](example/05-buzzer/README.md)                 |
 | 06   | [Water Level Detection Module](example/06-water_level_detect/README.md) |
-| 07   | [Reed Switch Module (KY-025)](example/07-magnetic reed switch(KY-025)/README.md) |
-| 08   | [Obstacle Detection Module (KY-032)](example/08-Obstacle Detection Module(KY-032)/README.md) |
-| 09   | [Mini Reed Switch (KY-021)](example/09 - Mini Magnetic (KY-021)/README.md) |
+| 07   | [Reed Switch Module (KY-025)](example/07-magnetic_reed_switch(KY-025)/README.md) |
+| 08   | [Obstacle Detection Module (KY-032)](example/08-Obstacle_Detection_Module(KY-032)/README.md) |
+| 09   | [Mini Reed Switch (KY-021)](example/09-Mini_Magnetic(KY-021)/README.md) |
 | 10   | [Photoresistor Module (KY-018)](example/10-photoresistor(KY-018)/README.md) |
 | 11   | [Flame Detection Module (KY-026)](example/11-flame_detect(KY-026)/README.md) |
-| 12   | [Magic Light Cup Module (KY-027)](example/12Magic Aura Module (KY-027)/README.md) |
-| 13   | [Tilt Switch Module (KY-020)](example/13-Inclination switch module(KY-20)/README.md) |
-| 14   | [Ultrasonic Module (HC-SR04)](example/14-Ultrasonic module(HC-SR04)/README.md) |
-| 15   | [Human Touch Module (KY-036)](example/15-Human body touch module(KY-036)/README.md) |
-| 16   | [Digital Tube Module (JY005)](example/16-Digital tube module(JY005)/README.md) |
-| 17   | [Laser Transmitter Module (KY-008)](example/17-Laser emission module(KY-008)/README.md) |
-| 18   | [Mercury Switch Module (KY-017)](example/18-Mercury switch module(KY-017)/README.md) |
-| 19   | [Temperature & Humidity Sensor (AHT20)](example/19-temperature and humidity sensor(AHT20)/README.md) |
-| 20   | [Analog Piezoelectric Vibration Sensor](example/20-Simulated Piezoelectric Ceramic Vibration Sensor/README.md) |
+| 12   | [Magic Light Cup Module (KY-027)](example/12Magic_Aura_Module(KY-027)/README.md) |
+| 13   | [Tilt Switch Module (KY-020)](example/13-Inclination_switch_module(KY-20)/README.md) |
+| 14   | [Ultrasonic Module (HC-SR04)](example/14-Ultrasonic_module(HC-SR04)/README.md) |
+| 15   | [Human Touch Module (KY-036)](example/15-Human_body_touch_module(KY-036)/README.md) |
+| 16   | [Digital Tube Module (JY005)](example/16-Digital_tube_module(JY005)/README.md) |
+| 17   | [Laser Transmitter Module (KY-008)](example/17-Laser_emission_module(KY-008)/README.md) |
+| 18   | [Mercury Switch Module (KY-017)](example/18-Mercury_switch_module(KY-017)/README.md) |
+| 19   | [Temperature & Humidity Sensor (AHT20)](example/19-temperature_and_humidity_sensor(AHT20)/README.md) |
+| 20   | [Analog Piezoelectric Vibration Sensor](example/20-Simulated_Piezoelectric_Ceramic_Vibration_Sensor/README.md) |
 
 # EG800Z Duino Development Board — Firmware Flashing & Usage Guide
 
