@@ -27,28 +27,56 @@ Connect the peripherals to the development board one by one according to the tab
 ## 3.Driver Code
 
 ```python
-gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_DISABLE)
+from machine import Pin, ExtInt
+import utime
 
-def main():
+# KY-032 Pin Description:
+#   VCC: 3.3-5V
+# GND: Ground
+#   OUT: Digital Output (No Obstacle = High Level 1, Obstacle Present = Low Level 0)
+#   EN: Enable Pin (Optional, default enabled when floating)
+# Note: There are two potentiometers on the module to adjust the detection distance and sensitivity
 
-  # Assume the sensor outputs high level (1) when tilt is detected
+# Configure GPIO as input, pull-up
+gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
 
-  while True:
+# ==================== Polling Mode ====================
+def main_polling():
+    print("KY-032 obstacle avoidance sensor (polling mode)")
+    while True:
+        if gpio.read() == 0:
+            print("Obstacle detected")
+        else:
+            print("No Obstacles")
+        utime.sleep_ms(200)
 
-     if gpio.read() == 1:
 
-       print("No obstacle detected")
+# ==================== Interrupt Mode ====================
+obstacle_flag = False
 
-     else:
+def irq_handler(args):
+    global obstacle_flag
+    if gpio.read() == 0:
+        obstacle_flag = True
 
-       print("Obstacle detected")
+def main_interrupt():
+    global obstacle_flag
+    ext = ExtInt(ExtInt.GPIO31, ExtInt.IRQ_FALLING, ExtInt.PULL_PU, irq_handler)
+    ext.enable()
+    print("KY-032 obstacle avoidance sensor (interrupt mode)")
+    while True:
+        if obstacle_flag:
+            print("
+Obstacle detected")
+            obstacle_flag = False
+        else:
+            print("No Obstacles")
+        utime.sleep_ms(200)
 
-     utime.sleep(1)
 
-if name == 'main':
-
-  main()
-
+if __name__ == '__main__':
+    main_polling()
+    # main_interrupt()  # Switch to interrupt mode
 
 ```
 

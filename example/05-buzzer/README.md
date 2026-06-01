@@ -47,15 +47,13 @@ Connect the peripherals to the development board one by one according to the tab
 
 ```python
 from machine import Pin
-
-/# 创建gpio对象
-
-gpio1 = Pin(Pin.GPIO31, Pin.OUT, Pin.PULL_DISABLE, 1)
-
-/# 设置引脚电平
-
-gpio1.write(1)
-
+import utime
+gpio=Pin(Pin.GPIO31,Pin.OUT,Pin.PULL_DISABLE,0)
+for _ in range(50):
+    gpio.write(1)
+    utime.sleep_ms(100)
+    gpio.write(0)
+    utime.sleep_ms(100)
  
 ```
 
