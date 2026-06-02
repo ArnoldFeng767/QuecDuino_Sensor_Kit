@@ -48,7 +48,7 @@ def set_color(red, green, blue):
 
   b.write(blue)
 
-/#排列组合展示多种灯色
+#排列组合展示多种灯色
 
 while True:
 

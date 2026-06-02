@@ -7,7 +7,7 @@
 @copyright : Copyright (c) 2026
 """
 
-from machine import Pin,ExtInt
+from machine import Pin
 import utime
 
 # Global flag
@@ -21,8 +21,10 @@ def main():
     # Assume the sensor outputs a high level (1) when detecting tilt
     while True:
         if gpio.read() == 1:
+            gpio1.write(1)
             print("Mercury detected inclination")
         else:
+            gpio1.write(0)
             print("Mercury did not detect inclination")
         utime.sleep(1)
         

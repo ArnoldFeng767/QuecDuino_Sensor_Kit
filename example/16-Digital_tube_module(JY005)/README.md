@@ -1,6 +1,6 @@
-### Nixie Tube Module
+# Digital Tube Module
 
-#### 1. Module Introduction
+## 1. Module Introduction
 
 The single-digit nixie tube module is a **digital display device** composed of 7-segment light-emitting diodes, used to display 0-9 digits and simple symbols. It is widely used in counting, timing, status display, and maker DIY scenarios. It features high brightness, clear display, 3.3V/5V compatibility, simple driving, and long service life.
 
@@ -12,7 +12,7 @@ The single-digit nixie tube module is a **digital display device** composed of 7
 
 The module has a positive electrode, a negative electrode, and a segment selection signal terminal. By controlling the on/off of different segments, it combines to display 0-9 digits, and the development board controls the corresponding segments to light up by outputting levels through GPIO.
 
-#### 2. Connection Example
+## 2. Connection Example
 
 Connect the peripheral to the development board one-to-one according to the table and picture instructions:
 
@@ -24,10 +24,10 @@ Connect the peripheral to the development board one-to-one according to the tabl
 
 ![](../../media/display1.png)
 
-## 三、 驱动代码
+## 3.Driving Code
 
 ```
-/# Initialize GPIO for each segment of the nixie tube
+# Initialize GPIO for each segment of the nixie tube
 seg32 = Pin(Pin.GPIO32, Pin.OUT, Pin.PULL_DISABLE, 1)  # Bottom right (a)
 seg31 = Pin(Pin.GPIO31, Pin.OUT, Pin.PULL_DISABLE, 1)  # Top (b)
 seg30 = Pin(Pin.GPIO30, Pin.OUT, Pin.PULL_DISABLE, 1)  # Top right (c)
@@ -37,8 +37,8 @@ seg3 = Pin(Pin.GPIO3,  Pin.OUT, Pin.PULL_DISABLE, 1)  # Decimal point (f)
 seg14 = Pin(Pin.GPIO14, Pin.OUT, Pin.PULL_DISABLE, 1)  # Bottom left (g)
 seg15 = Pin(Pin.GPIO15, Pin.OUT, Pin.PULL_DISABLE, 1)  # Top left (h)
 
-/# Segment code table: on/off of each segment corresponding to 0~9 (0=on, 1=off)
-/# Order: a b c d e f g h
+# Segment code table: on/off of each segment corresponding to 0~9 (0=on, 1=off)
+# Order: a b c d e f g h
 num_table = [
   [0,0,0,0,1,0,0,0],  # 0
   [0,1,0,1,1,0,1,1],  # 1
@@ -65,7 +65,7 @@ def display_num(n):
   seg14.write(val[6])
   seg15.write(val[7])
 
-/# Cycle display 0-9
+# Cycle display 0-9
 while True:
   for i in range(10):
     display_num(i)

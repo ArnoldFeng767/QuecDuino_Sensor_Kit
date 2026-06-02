@@ -26,12 +26,12 @@ Connect the peripheral to the development board one-to-one according to the tabl
 ## 3.Driver Code
 
 ```python
-/# Configure GPIO as input with pull-up
+# Configure GPIO as input with pull-up
 gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PD)
 gpio1 = Pin(Pin.GPIO30, Pin.OUT, Pin.PULL_DISABLE, 0)
 
 def main():
-  /# Assume the sensor outputs high level (1) when tilt is detected
+  # Assume the sensor outputs high level (1) when tilt is detected
   while True:
      if gpio.read() == 1:
        print("Mercury switch detects tilt")

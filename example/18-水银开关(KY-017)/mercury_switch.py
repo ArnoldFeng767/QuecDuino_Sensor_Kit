@@ -7,7 +7,7 @@
 @copyright : Copyright (c) 2026
 """
 
-from machine import Pin,ExtInt
+from machine import Pin
 import utime
 
 # 全局标志位
@@ -21,8 +21,10 @@ def main():
     # 假设传感器检测到倾斜时输出高电平（1）
     while True:
         if gpio.read() == 1:
+            gpio1.write(1)
             print("水银检测到倾斜")
         else:
+            gpio1.write(0)
             print("水银没有检测到倾斜")
         utime.sleep(1)
         

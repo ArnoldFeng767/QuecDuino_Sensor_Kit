@@ -34,52 +34,52 @@ The working process of HC-SR04 is initiated by a "trigger signal" and feeds back
 
 Connect the peripheral to the development board one-to-one according to the table and picture instructions:
 
-| **外设**           | **模块**     |
-| ------------------ | ------------ |
-| Ultrasonic（+）    | VCC(5V)      |
-| Ultrasonic（Trig） | Pin5(GPIO30) |
-| Ultrasonic（Echo） | Pin4(GPIO31) |
-| Ultrasonic（-）    | GND          |
+| **Peripheral Devices** | **Module**   |
+| ---------------------- | ------------ |
+| Ultrasonic（+）        | VCC(5V)      |
+| Ultrasonic（Trig）     | Pin5(GPIO30) |
+| Ultrasonic（Echo）     | Pin4(GPIO31) |
+| Ultrasonic（-）        | GND          |
 
 ![](../../media/hc3.png)
 
-## **三、** **驱动代码**
+##  **3.Driving Code**
 
 ```python
 from machine import Pin
 import utime
 
-/# Pin definition (modify according to actual wiring)
+# Pin definition (modify according to actual wiring)
 TRIG_PIN = Pin.GPIO30  # Trigger pin
 ECHO_PIN = Pin.GPIO31  # Echo pin
 
-/# Initialize pins
+# Initialize pins
 trig = Pin(TRIG_PIN, Pin.OUT, Pin.PULL_DISABLE, 0)
 echo = Pin(ECHO_PIN, Pin.IN, Pin.PULL_DISABLE, 0)
 
 def measure_distance():
-  /# Send a high-level trigger signal for more than 10us
+  # Send a high-level trigger signal for more than 10us
   trig.write(0)
   utime.sleep_us(2)
   trig.write(1)
   utime.sleep_us(10)
   trig.write(0)
 
-  /# Wait for the ECHO pin to go high (start timing)
+  # Wait for the ECHO pin to go high (start timing)
   timeout = utime.ticks_ms() + 200  # Timeout 200ms
   while echo.read() == 0:
      if utime.ticks_ms() > timeout:
        return -1  # Timeout, measurement failed
   start_time = utime.ticks_us()
   
-  /# Wait for the ECHO pin to go low (end timing)
+  # Wait for the ECHO pin to go low (end timing)
   while echo.read() == 1:
      if utime.ticks_ms() > timeout:
        return -1  # Timeout, measurement failed
 
   end_time = utime.ticks_us()
 
-  /# Calculate distance (speed of sound = 340m/s = 0.034cm/us, divided by 2 for round trip)
+  # Calculate distance (speed of sound = 340m/s = 0.034cm/us, divided by 2 for round trip)
   pulse_duration = end_time - start_time
   distance = (pulse_duration * 0.034) / 2
 

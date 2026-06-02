@@ -12,13 +12,14 @@ from machine import Pin
 import _thread
 import utime
 
-
+num=0
 def fun():
+    global num
     while True:
         num=adc.read(adc.ADC1)
         utime.sleep(1)#A specific voltage value is obtained, and the duty cycle is controlled based on this voltage value.
         print(num)
-        return num
+
 
 def LED_SW(num):
     if num<50:
@@ -33,6 +34,6 @@ if __name__=='__main__':
     adc = ADC()
     adc.open()
     _thread.start_new_thread(fun,())
-    while True:
-        num=fun()        
+    while True:     
         LED_SW(num)
+        utime.sleep(1)

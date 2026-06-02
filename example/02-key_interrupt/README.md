@@ -37,7 +37,7 @@ Connect the peripheral device to the development board one by one according to t
 ```python
 from machine import ExtInt
 
-/# args[0]:gpio号 args[1]:上升沿或下降沿
+# args[0]:gpio号 args[1]:上升沿或下降沿
 
 def fun(args): 
 
@@ -45,7 +45,7 @@ def fun(args):
 
 extint = ExtInt(ExtInt.GPIO31,ExtInt.IRQ_FALLING,ExtInt.PULL_PU,fun)
 
-/#中断使能
+#中断使能
 
 extint.enable()
 ```

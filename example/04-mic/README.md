@@ -14,7 +14,7 @@ Connect the peripheral to the development board one-to-one according to the guid
 | MIC（-）   | GND               |
 | MIC（S）   | A1(ADC1)          |
 
-![](C:/Users/Aaron.chen/Desktop/QuecDuion套件相关资料/QuecDuino_Sensor_Kit/media/mic1.png) 
+![](../../media/mic1.png) 
 
 
 

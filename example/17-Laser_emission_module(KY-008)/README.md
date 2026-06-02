@@ -18,13 +18,19 @@ Connect the peripheral to the development board one-to-one according to the tabl
 
 ## 3. Driver Code
 
-```
+```python
 from machine import Pin
+import utime
 
-/# Create GPIO object
-gpio1 = Pin(Pin.GPIO31, Pin.OUT, Pin.PULL_DISABLE, 1)
+if __name__=='__main__':
+    laser=Pin(Pin.GPIO31,Pin.OUT,Pin.PULL_DISABLE,0)
+    while True:
+        laser.write(1)
+        print("laser on")
+        utime.sleep(2)
+        laser.write(0)
+        print("laser off")
+        utime.sleep(2)
 
-/# Set pin level
-gpio1.write(1)
 ```
 

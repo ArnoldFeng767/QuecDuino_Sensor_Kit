@@ -8,7 +8,7 @@
 """
 
 
-from machine import Pin,ExtInt
+from machine import Pin
 import utime
 
 # Global flag

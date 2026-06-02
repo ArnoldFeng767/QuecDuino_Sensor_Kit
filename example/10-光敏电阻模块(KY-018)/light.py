@@ -13,12 +13,14 @@ import _thread
 import utime
 
 
+num=0
 def fun():
+    global num
     while True:
         num=adc.read(adc.ADC1)
         utime.sleep(1)#出现具体电压值，通过电压值控制占空比
         print(num)
-        return num
+
 
 def LED_SW(num):
     if num<50:
@@ -34,5 +36,5 @@ if __name__=='__main__':
     adc.open()
     _thread.start_new_thread(fun,())
     while True:
-        num=fun()        
+        utime.sleep(1)
         LED_SW(num)

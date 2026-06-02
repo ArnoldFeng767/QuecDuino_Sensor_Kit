@@ -30,7 +30,7 @@ Connect the peripherals to the development board one by one according to the tab
 
 ![](../../media/light3.png)
 
-## 三、 驱动代码
+## 3.Driving Code
 
 ```python
 from misc import ADC

@@ -66,8 +66,7 @@ def main_interrupt():
     print("KY-032 obstacle avoidance sensor (interrupt mode)")
     while True:
         if obstacle_flag:
-            print("
-Obstacle detected")
+            print("Obstacle detected")
             obstacle_flag = False
         else:
             print("No Obstacles")

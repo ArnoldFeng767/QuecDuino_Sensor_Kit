@@ -32,14 +32,15 @@ According to the instructions provided in the table and pictures, connect the pe
 
 ```python
 from machine import Pin
+import utime
 
-/# 创建gpio对象
+led=Pin(Pin.GPIO31,Pin.OUT,Pin.PULL_DISABLE,1)
 
-gpio1 = Pin(Pin.GPIO31, Pin.OUT, Pin.PULL_DISABLE, 1)
-
-/# 设置引脚电平
-
-gpio1.write(1)
+while True:
+    led.write(0) #close
+    utime.sleep(1)
+    led.write(1) #open
+    utime.sleep(1)
 ```
 
  
