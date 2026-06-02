@@ -12,28 +12,44 @@ from machine import Pin
 import _thread
 import utime
 
-num=0
-def fun():
-    global num
+class LightController(object):
+    """Light sensor control class using ADC to read light intensity and control LED brightness."""
+
+    def __init__(self, adc_channel=None, led_pin=Pin.GPIO31, sample_ms=500):
+        self.sample_ms = sample_ms
+        self.led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self.adc = ADC()
+        self.adc_channel = self.adc.ADC1 if adc_channel is None else adc_channel
+        self.is_running = False
+
+    def start(self):
+        self.adc.open()
+        self.is_running = True
+        _thread.start_new_thread(self.monitor, ())
+        
+    def monitor(self):
+        while self.is_running:
+            light_value = self.adc.read(self.adc_channel)
+            print("Light intensity value:", light_value)
+            # Control LED brightness based on light intensity (simple threshold control)
+            if light_value < 50:  # Adjust threshold as needed
+                self.led.write(0)  # Turn off LED
+                print("Light is weak, turn off LED")
+            else:
+                self.led.write(1)  # Turn on LED
+                print("Light is strong, turn on LED")
+            utime.sleep_ms(self.sample_ms)
+
+    def stop(self):
+        self.is_running = False 
+
+if __name__ == '__main__':
+    light_controller = LightController(
+        led_pin=Pin.GPIO31,
+        sample_ms=500,
+    )
+    light_controller.start()
+
     while True:
-        num=adc.read(adc.ADC1)
-        utime.sleep(1)#A specific voltage value is obtained, and the duty cycle is controlled based on this voltage value.
-        print(num)
+        utime.sleep_ms(1000)
 
-
-def LED_SW(num):
-    if num<50:
-        LED.write(0)
-        print("Light is strong, close led")
-    else:
-        LED.write(1)
-        print("Light is weak, open led")
-
-if __name__=='__main__':
-    LED=Pin(Pin.GPIO31,Pin.OUT,Pin.PULL_DISABLE,0)
-    adc = ADC()
-    adc.open()
-    _thread.start_new_thread(fun,())
-    while True:     
-        LED_SW(num)
-        utime.sleep(1)

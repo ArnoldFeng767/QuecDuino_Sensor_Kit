@@ -1,27 +1,27 @@
-# 温湿度传感器
+# Temperature and Humidity Sensor
 
-## **一、** **模块介绍**
+## 1. Module Introduction
 
-温湿度传感器作为常见的传感器之一，是一种装有湿敏和热敏元件，能够用来测量温度和湿度的传感器装置。其工作原理主要基于热敏电阻和湿敏电阻的特性，通过测量电阻值并转换成电压信号输出，实现对环境温湿度的准确监测。
+As one of the common sensors, the temperature and humidity sensor is a sensor device equipped with humidity-sensitive and temperature-sensitive elements, which can be used to measure temperature and humidity. Its working principle is mainly based on the characteristics of thermistors and humidity-sensitive resistors. It realizes accurate monitoring of environmental temperature and humidity by measuring resistance values and converting them into voltage signal outputs.
 
-**发光原理：**
+**Working Principle**:
 
-模块通过内部热敏元件与湿敏元件采集环境数据，经芯片校准后以**I2C 数字信号**输出，开发板通过 I2C 总线读取温度和湿度数值。
+The module collects environmental data through internal temperature-sensitive and humidity-sensitive elements, outputs **I2C digital signals** after chip calibration, and the development board reads temperature and humidity values through the I2C bus.
 
-## 二、 连接示例
+## 2. Connection Example
 
-根据表格和图片指导，将外设与开发板一一对应连接
+Connect the peripheral to the development board one-to-one according to the table and picture instructions:
 
-| 外设         | 开发板       |
-| ------------ | ------------ |
-| AHT20（+）   | 3.3V         |
-| AHT20（-）   | GND          |
-| AHT20（SCL） | PIN17（SCL） |
-| AHT20（SDA） | PIN16（SDA） |
+| Peripheral   | Development Board |
+| ------------ | ----------------- |
+| AHT20（+）   | 3.3V              |
+| AHT20（-）   | GND               |
+| AHT20（SCL） | PIN17（SCL）      |
+| AHT20（SDA） | PIN16（SDA）      |
 
 ![](../../media/aht20.png)
 
-## 三、 驱动代码
+## 3.Driver Code
 
 ```python
 from machine import I2C 

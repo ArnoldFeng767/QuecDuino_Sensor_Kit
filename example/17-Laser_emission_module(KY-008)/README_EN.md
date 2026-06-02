@@ -1,22 +1,22 @@
-# 激光发射模块
+# Laser Emission Module
 
-## **一、** **模块介绍**
+## 1. Module Introduction
 
-**激光发射模块（Laser Emitter Module）** 的核心原理是：**通过半导体激光二极管（LD），将电能高效转化为高亮度、高方向性、单色性的相干光（激光），再经光学系统准直 / 整形后发射出去**。它广泛用于激光测距、激光雷达、光纤通信、激光指示、红外夜视等场景。
+The core principle of the **Laser Emitter Module** is: **converting electrical energy into high-brightness, high-directionality, monochromatic coherent light (laser) efficiently through a semiconductor laser diode (LD), then emitting it after collimation/shaping by an optical system**. It is widely used in laser ranging, laser radar, optical fiber communication, laser indication, infrared night vision and other scenarios.
 
-## 二、 连接示例
+## 2. Connection Example
 
-根据表格和图片指导，将外设与开发板一一对应连接
+Connect the peripheral to the development board one-to-one according to the table and picture instructions:
 
-| 外设        | 开发板       |
-| ----------- | ------------ |
-| Module（+） | 3.3V         |
-| Module（-） | GND          |
-| Module（S） | PIN4(GPIO31) |
+| Peripheral  | Development Board |
+| ----------- | ----------------- |
+| Module（+） | 3.3V              |
+| Module（-） | GND               |
+| Module（S） | PIN4(GPIO31)      |
 
 ![](../../media/laser1.png)
 
-## 三、 驱动代码
+## 3. Driver Code
 
 ```python
 from machine import Pin

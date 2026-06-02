@@ -1,85 +1,71 @@
-# LED Module
+# LED模块
 
-## 1. Module Introduction
+## **一、** **模块介绍**
 
-The tricolor RGBLED is a **full-color light-emitting diode module**, which consists of three chips (red, green, and blue) packaged together. It can mix any color by adjusting brightness through PWM (Pulse Width Modulation), and is widely used in ambient lights, status indicators, interactive prompts, maker DIY scenarios. It can achieve effects such as seven-color gradient, breathing, and flashing, with advantages including small size, high brightness, 3.3V/5V compatibility, simple driving, and long service life.
+三色 RGBLED 是**全彩发光二极管模块**，由红、绿、蓝三颗芯片封装在一起，可通过 PWM 调节亮度混合出任意颜色，广泛用于氛围灯、状态指示、交互提示、创客 DIY 场景；它能实现七彩渐变、呼吸、闪烁等效果，具备体积小、亮度高、3.3V/5V 兼容、驱动简单、寿命长等优点。
 
-**Light-emitting Principle**:
+**发光原理：** 
 
-The LED pins share a common ground. The LED lights up when a voltage difference is formed between the positive and negative poles, so a high level turns on the LED.
+LED引脚共地，当正负极形成电压差时，LED点亮，所以高电平LED亮灯。
 
-## 2. Connection Example
+## 二、 连接示例
 
-Connect the peripheral to the development board one by one according to the guidance of the table and picture.
+根据表格和图片指导，将外设与开发板一一对应连接
 
-| Peripheral | Development Board |
-| ---------- | ----------------- |
-| LED（-）   | GND               |
-| LED（R）   | PIN4（GPIO31）    |
-| LED（G）   | PIN5（GPIO30）    |
-| LED（B）   | PIN6（GPIO32）    |
+| 外设     | 开发板         |
+| -------- | -------------- |
+| LED（-） | GND            |
+| LED（R） | PIN4（GPIO31） |
+| LED（G） | PIN5（GPIO30） |
+| LED（B） | PIN6（GPIO32） |
 
 ![](../../media/led4.png)
 
-## 3.Driver Code
+## 三、 驱动代码
 
 ```python
-R_PIN = 32
+from machine import Pin
+import utime
 
-G_PIN = 30
 
-B_PIN = 31
+class RGBLED(object):
+    def __init__(self, red, green, blue):
+        self.red = red
+        self.green = green
+        self.blue = blue
 
- 
+    def set_color(self, red, green, blue):
+        self.red.write(red)
+        self.green.write(green)
+        self.blue.write(blue)
 
-r = Pin(Pin.GPIO32, Pin.OUT,Pin.PULL_DISABLE, 0)
+    def set_color_by_name(self, name):
+        color_map = {
+            "red": (0, 1, 1),
+            "green": (1, 0, 1),
+            "blue": (1, 1, 0),
+            "yellow": (0, 0, 1),
+            "purple": (0, 1, 0),
+            "cyan": (1, 0, 0),
+            "white": (0, 0, 0),
+            "off": (1, 1, 1)
+        }
+        if name in color_map:
+            self.set_color(*color_map[name])
 
-g = Pin(Pin.GPIO30, Pin.OUT,Pin.PULL_DISABLE, 0)
+if __name__ == "__main__":
+    # Modify according to the actual pins of your development board, such as Pin.GPIO31, Pin.GPIO30, and Pin.GPIO29
+    rgb_led = RGBLED(
+        red=Pin(Pin.GPIO32, Pin.OUT, Pin.PULL_DISABLE, 0),
+        green=Pin(Pin.GPIO30, Pin.OUT, Pin.PULL_DISABLE, 0),
+        blue=Pin(Pin.GPIO31, Pin.OUT, Pin.PULL_DISABLE, 0)
+    )
 
-b = Pin(Pin.GPIO31, Pin.OUT,Pin.PULL_DISABLE, 0)
-
- 
-
-def set_color(red, green, blue):
-
-  r.write(red)
-
-  g.write(green)
-
-  b.write(blue)
-
-# Display multiple light colors through permutation and combination
-
-while True:
-
-  set_color(1, 0, 0)  # 红色
-
-  utime.sleep(1)
-
-  set_color(0, 1, 0)  # 绿色
-
-  utime.sleep(1)
-
-  set_color(0, 0, 1)  # 蓝色
-
-  utime.sleep(1)
-
-  set_color(1, 1, 0)  # 黄色
-
-  utime.sleep(1)
-
-  set_color(1, 0, 1)  # 紫色
-
-  utime.sleep(1)  
-
-  set_color(0, 1, 1)  # 青色
-
-  utime.sleep(1)
-
-  set_color(1, 1, 1)  # 白色
-
-  utime.sleep(1)
-
- 
+    colors = ["red", "green", "blue", "yellow", "purple", "cyan", "white", "off"]
+    while True:
+        for color in colors:
+            rgb_led.set_color_by_name(color)
+            print("LED color set to {}".format(color))
+            utime.sleep(1)
 ```
 

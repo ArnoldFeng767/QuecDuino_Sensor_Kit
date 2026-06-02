@@ -1,47 +1,58 @@
-# Human Touch Module
+# 人体触摸模块
 
-#### 1. Module Introduction
+## **一、** **模块介绍**
 
-This module is a capacitive momentary touch switch module based on touch detection. The metal touch module responds to the capacitance of the human body. Since it monitors capacitance, non-metallic materials such as wood, paper, plastic and other insulating materials can be covered on the module surface to detect human touch, and it can be made into a button hidden in walls, desktops, etc.
+该模块是一个基于触摸检测的电容式点动型触摸开关模块。·金属触摸模块是通过人体的电容来作出反应的。由于其是监测电容，还可以在模块表面覆盖非金属材料如木材、纸、塑料等等jue缘材料，来检测人的触摸可做成隐藏在墙壁、桌面等地方的按键。
+
+**模块组成：**
 
 ![](../../media/finger1.png) 
 
-**Working Principle**:
+**发光原理：**
 
-The module has a positive electrode, a negative electrode, and a signal terminal. When the human body touches the induction sheet, the capacitance value changes. After the internal circuit of the module identifies it, it outputs a high/low level signal, and the development board can directly read the state to determine whether it is touched.
+模块有正极、负极、信号端。人体触摸感应片时，电容值发生变化，模块内部电路识别后输出高低电平信号，开发板可直接读取状态判断是否被触摸。
 
-#### 2. Connection Example
+## 二、 连接示例
 
-Connect the peripheral to the development board one-to-one according to the table and picture instructions:
+根据表格和图片指导，将外设与开发板一一对应连接
 
-| Peripheral  | Development Board |
-| ----------- | ----------------- |
-| Module（+） | 3.3V              |
-| Module（-） | GND               |
-| Module（S） | PIN4(GPIO31)      |
+| 外设      | 开发板       |
+| --------- | ------------ |
+| 模块（+） | 3.3V         |
+| 模块（-） | GND          |
+| 模块（S） | PIN4(GPIO31) |
 
 ![](../../media/finger2.png)
 
-## 3.Driver Code
+## 三、 驱动代码
 
 ```` python
-#Configure the GPIO as an input with a pull-down resistor.
+class TouchSensor:
+    """Human touch sensor encapsulation class."""
+    
+    def __init__(self, pin=Pin.GPIO31, trigger_level=1, pull=Pin.PULL_PD):
+        self.gpio = Pin(pin, Pin.IN, pull)
+        self.trigger_level = trigger_level
 
-gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PD)
+    def read_state(self):
+        return self.gpio.read()
+
+    def is_touched(self):
+        return self.read_state() == self.trigger_level
+
+    def monitor(self, interval_sec=1):
+        while True:
+            if self.is_touched():
+                print("Touch detected")
+            else:
+                print("No touch detected")
+            utime.sleep(interval_sec)
 
 def main():
+    touch_sensor = TouchSensor(pin=Pin.GPIO31, trigger_level=1, pull=Pin.PULL_PD)
+    touch_sensor.monitor(interval_sec=1)
 
-# Assume the sensor outputs high level (1) when touch is detected
-
-  while True:
-        if gpio.read() == 1:
-          print("Touch detected")
-        else:
-          print("No touch detected")
-        utime.sleep(1)
-
-if name == 'main':
-
-  main()
+if __name__ == '__main__':
+    main()
 ````
 

@@ -1,33 +1,45 @@
 """
 @file      : mercury_switch.py
 @author    : Aaron Chen (aaron.chen@example.com)
-@brief     : Mercury switch detection using GPIO
-@version   : 0.1
-@date      : 2026-04-21
+@brief     : Class-based mercury switch detection using GPIO
+@version   : 0.2
+@date      : 2026-06-02
 @copyright : Copyright (c) 2026
 """
 
 from machine import Pin
 import utime
 
-# Global flag
-human_detected = False
+class MercurySwitch:
+    """Mercury switch sensor encapsulation class."""
 
-# Configure GPIO as input with pull-up
-gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
-gpio1=Pin(Pin.GPIO30,Pin.OUT,Pin.PULL_DISABLE,0)
+    def __init__(self, sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1, pull=Pin.PULL_PU):
+        self.sensor = Pin(sensor_pin, Pin.IN, pull)
+        self.output = Pin(output_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self.trigger_level = trigger_level
 
-def main():
-    # Assume the sensor outputs a high level (1) when detecting tilt
-    while True:
-        if gpio.read() == 1:
-            gpio1.write(1)
+    def read_state(self):
+        return self.sensor.read()
+
+    def is_triggered(self):
+        return self.read_state() == self.trigger_level
+
+    def update(self):
+        if self.is_triggered():
+            self.output.write(1)
             print("Mercury detected inclination")
         else:
-            gpio1.write(0)
+            self.output.write(0)
             print("Mercury did not detect inclination")
-        utime.sleep(1)
-        
+
+    def monitor(self):
+        while True:
+            self.update()
+            utime.sleep(1)
+
+def main():
+    mercury = MercurySwitch(sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1, pull=Pin.PULL_PU)
+    mercury.monitor()
 
 if __name__ == '__main__':
     main()

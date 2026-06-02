@@ -1,30 +1,30 @@
-# 数码管模块
+# Digital Tube Module
 
-## **一、** **模块介绍**
+## 1. Module Introduction
 
-单位数码管模块是**数字显示器件**，由 7 段发光二极管组成，用于显示 0-9 数字及简单符号，广泛用于计数、计时、状态显示、创客 DIY 场景；它亮度高、显示清晰、3.3V/5V 兼容、驱动简单、使用寿命长。
+The single-digit nixie tube module is a **digital display device** composed of 7-segment light-emitting diodes, used to display 0-9 digits and simple symbols. It is widely used in counting, timing, status display, and maker DIY scenarios. It features high brightness, clear display, 3.3V/5V compatibility, simple driving, and long service life.
 
-**LED组成：**
+**Composition**:
 
-7 段 LED 发光段、公共端、小数点、限流电阻、PCB 板、接线端子
+7-segment LED light-emitting segments, common terminal, decimal point, current-limiting resistor, PCB board, wiring terminal.
 
-**发光原理：**
+**Working Principle**:
 
-模块有正极、负极、段选信号端。通过控制不同段的亮灭，组合显示 0-9 数字，开发板通过 GPIO 输出电平控制对应段点亮。
+The module has a positive electrode, a negative electrode, and a segment selection signal terminal. By controlling the on/off of different segments, it combines to display 0-9 digits, and the development board controls the corresponding segments to light up by outputting levels through GPIO.
 
-## 二、 连接示例
+## 2. Connection Example
 
-根据表格和图片指导，将外设与开发板一一对应连接
+Connect the peripheral to the development board one-to-one according to the table and picture instructions:
 
-| 外设     | 开发板 |
-| -------- | ------ |
-| LED（+） | 3.3V   |
-| LED（-） | GND    |
-| LED（S） | 自选   |
+| Peripheral | Development Board |
+| ---------- | ----------------- |
+| LED（+）   | 3.3V              |
+| LED（-）   | GND               |
+| LED（S）   | Optional          |
 
 ![](../../media/display1.png)
 
-## 三、 驱动代码
+## 3.Driving Code
 
 ```python
 from machine import Pin

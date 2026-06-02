@@ -1,30 +1,30 @@
-# 迷你磁簧模块
+# Mini Reed Module
 
-## **一、** **模块介绍**
+## 1. Module Introduction
 
-迷你磁簧，全称**迷你磁簧开关（干簧管模块）**，是一种利用磁场控制通断的无源开关组件，这类磁性感应器件一般作为门磁检测、位置检测、限位触发使用，目前已经广泛用于嵌入式设备、智能硬件、创客 DIY 场景；它能够在磁场靠近时导通、磁场远离时断开，拥有体积小、响应快、无机械触点磨损、低功耗、即插即用、适配 3.3V/5V 低压环境、可直接接 GPIO 检测、使用寿命长等优点。
+The mini reed, full name **Mini Reed Switch (Reed Pipe Module)**, is a passive switch component whose on-off is controlled by a magnetic field. This type of magnetic induction device is generally used for door magnetic detection, position detection, and limit triggering, and is currently widely used in embedded devices, smart hardware, and maker DIY scenarios; it can conduct when a magnetic field approaches and disconnect when the magnetic field moves away, with advantages such as small size, fast response, no mechanical contact wear, low power consumption, plug-and-play, adaptation to 3.3V/5V low-voltage environment, direct connection to GPIO detection, and long service life.
 
-迷你磁环组成：
+Composition of Mini Reed Module:
 
 ![](../../media/mini1.png)
 
-**工作原理：**
+**Working Principle:**
 
-模块本质是一个受磁场控制的开关。当磁铁靠近模块时，玻璃管内的磁簧片被磁化并相互吸引接触，电路导通；当磁铁远离时，簧片失去磁性并依靠弹性分离，电路断开，以此实现磁场触发的开关信号输出。
+The module is essentially a switch controlled by a magnetic field. When a magnet approaches the module, the reed in the glass tube is magnetized and attracted to each other to contact, and the circuit is conducted; when the magnet moves away, the reed loses its magnetism and separates by elasticity, and the circuit is disconnected, so as to realize the switch signal output triggered by the magnetic field.
 
-## 二、 连接示例
+## 2. Connection Example
 
-根据表格和图片指导，将外设与开发板一一对应连接
+Connect the peripherals to the development board one by one according to the table and picture instructions
 
-| 外设      | 开发板       |
-| --------- | ------------ |
-| 磁簧（+） | 3.3V         |
-| 磁簧（-） | GND          |
-| 磁簧（S） | PIN4(GPIO31) |
+| Peripheral  | Development Board |
+| ----------- | ----------------- |
+| Module（+） | 3.3V              |
+| Module（-） | GND               |
+| Module（S） | PIN4(GPIO31)      |
 
 ![](../../media/mini2.png)
 
-## 三、 驱动代码
+## 3.Driver Code
 
 ```python
 from machine import Pin

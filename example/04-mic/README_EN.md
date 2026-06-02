@@ -1,20 +1,34 @@
-"""
-@file      : MIC.py
-@author    : Aaron Chen (aaron.chen@example.com)
-@brief     : Class-based microphone signal processing example
-@version   : 0.2
-@date      : 2026-06-02
-@copyright : Copyright (c) 2026
-"""
+# Microphone Module
 
+## 1. Module Introduction
+
+A microphone is short for an **acoustic-electric conversion device**, also known as a sound detection sensor module. It can detect the sound intensity in the surrounding environment and convert it into an electrical signal for output. It contains a built-in microphone that can capture sound signals. The sensitivity of the module to sound can be adjusted by tuning the sensitivity potentiometer on the module. It supports analog output mode, meeting the requirements of most applications and design needs.
+
+## 2. Connection Example
+
+Connect the peripheral to the development board one-to-one according to the guidance of the table and picture.
+
+| Peripheral | Development Board |
+| ---------- | ----------------- |
+| MIC（+）   | 3.3V              |
+| MIC（-）   | GND               |
+| MIC（S）   | A1(ADC1)          |
+
+![](../../media/mic1.png) 
+
+
+
+## 3.Driver Code
+
+```python
 from misc import ADC
 from machine import Pin
 import _thread
 import utime
 
 
-class Mic(object):
-    """Microphone sensor packaging class."""
+class Mic:
+    """麦克风传感器封装类。"""
 
     def __init__(self, adc_channel=None, led_pin=Pin.GPIO31, threshold=200, sample_ms=500, led_on_sec=2):
         self.threshold = threshold
@@ -52,7 +66,6 @@ class Mic(object):
     def stop(self):
         self.is_running = False
 
-
 if __name__ == '__main__':
     mic = Mic(
         led_pin=Pin.GPIO31,
@@ -64,3 +77,7 @@ if __name__ == '__main__':
 
     while True:
         utime.sleep_ms(1000)
+
+```
+
+ 
