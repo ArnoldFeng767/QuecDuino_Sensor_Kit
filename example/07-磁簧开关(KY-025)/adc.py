@@ -6,7 +6,7 @@ def fun():
     while True:
         num=adc.read(adc.ADC0)
         utime.sleep(1)
-        print(num)
+        print(num)#输出的电压值会随着磁场强度的变化而线性改变
 
 
 if __name__=='__main__':

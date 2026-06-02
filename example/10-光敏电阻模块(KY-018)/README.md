@@ -33,46 +33,35 @@
 ## 三、 驱动代码
 
 ```python
+from misc import ADC
+from machine import Pin
+import _thread
+import utime
+
+
 def fun():
-
-  while True:
-
-     num=adc.read(adc.ADC1)
-
-     utime.sleep(1)#出现具体电压值，通过电压值控制占空比
-
-     print(num)
-
-     return num
+    while True:
+        num=adc.read(adc.ADC1)
+        utime.sleep(1)#出现具体电压值，通过电压值控制占空比
+        print(num)
+        return num
 
 def LED_SW(num):
+    if num<50:
+        LED.write(0)
+        print("光线较强，关灯")
+    else:
+        LED.write(1)
+        print("光线较弱，开灯")
 
-  if num<50:
+if __name__=='__main__':
+    LED=Pin(Pin.GPIO31,Pin.OUT,Pin.PULL_DISABLE,0)
+    adc = ADC()
+    adc.open()
+    _thread.start_new_thread(fun,())
+    while True:
+        num=fun()        
+        LED_SW(num)
 
-     LED.write(1)
-
-     print("光线较强")
-
-  else:
-
-     LED.write(0)
-
-     print("光线较弱")
-
-if name=='main':
-
-  LED=Pin(Pin.GPIO31,Pin.OUT,Pin.PULL_DISABLE,0)
-
-  adc = ADC()
-
-  adc.open()
-
-  _thread.start_new_thread(fun,())
-
-  while True:
-
-     num=fun()     
-
-     LED_SW(num)
 ```
 

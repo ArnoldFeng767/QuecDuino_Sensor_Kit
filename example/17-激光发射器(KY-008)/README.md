@@ -16,19 +16,21 @@
 
 ![](../../media/laser1.png)
 
-## 四、 驱动代码
+## 三、 驱动代码
 
-```
+```python
 from machine import Pin
+import utime
 
-/# 创建gpio对象
+if __name__=='__main__':
+    laser=Pin(Pin.GPIO31,Pin.OUT,Pin.PULL_DISABLE,0)
+    while True:
+        laser.write(1)
+        print("laser on")
+        utime.sleep(2)
+        laser.write(0)
+        print("laser off")
+        utime.sleep(2)
 
-gpio1 = Pin(Pin.GPIO31, Pin.OUT, Pin.PULL_DISABLE, 1)
-
-/# 设置引脚电平
-
-gpio1.write(1)
-
- 
 ```
 

@@ -12,16 +12,20 @@ from misc import ADC
 from machine import Pin
 import _thread
 import utime
-
+#声控LED灯
 def fun():
     while True:
         num=adc.read(adc.ADC1)
-        utime.sleep(1)#出现具体电压值，通过电压值控制占空比
+        utime.sleep_ms(500)#出现具体电压值，通过电压值控制占空比
+        if num>200:
+            LED.write(1)#有声音时LED亮
+            utime.sleep(2)
+            LED.write(0)
         print(num)
 
     
 if __name__=='__main__':
-    LED=Pin(1,Pin.OUT,Pin.PULL_DISABLE,0)
+    LED=Pin(Pin.GPIO31,Pin.OUT,Pin.PULL_DISABLE,0)
     adc = ADC()
     adc.open()
     _thread.start_new_thread(fun,())

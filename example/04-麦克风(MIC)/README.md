@@ -1,3 +1,5 @@
+
+
 # 麦克风模块
 
 ## **一、** **模块介绍**
@@ -19,27 +21,27 @@
 ## 三、 驱动代码
 
 ```python
+from misc import ADC
+from machine import Pin
+import _thread
+import utime
+
 def fun():
+    while True:
+        num=adc.read(adc.ADC1)
+        utime.sleep_ms(500)#出现具体电压值，通过电压值控制占空比
+        if num>200:
+            LED.write(1)
+            utime.sleep(2)
+            LED.write(0)
+        print(num)
 
-  while True:
-
-     num=adc.read(adc.ADC1)
-
-     utime.sleep(1)#出现具体电压值，通过电压值控制占空比
-
-     print(num)
-
-
-
-if name=='main':
-
-  LED=Pin(1,Pin.OUT,Pin.PULL_DISABLE,0)
-
-  adc = ADC()
-
-  adc.open()
-
-  _thread.start_new_thread(fun,())
+    
+if __name__=='__main__':
+    LED=Pin(Pin.GPIO31,Pin.OUT,Pin.PULL_DISABLE,0)
+    adc = ADC()
+    adc.open()
+    _thread.start_new_thread(fun,())
 ```
 
  

@@ -53,7 +53,7 @@ from machine import Pin
 
 import utime
 
-/# 引脚定义（根据实际接线修改）
+# 引脚定义（根据实际接线修改）
 
 TRIG_PIN = Pin.GPIO30  # 触发脚
 
@@ -61,7 +61,7 @@ ECHO_PIN = Pin.GPIO31  # 回声脚
 
 
 
-/# 初始化引脚
+# 初始化引脚
 
 trig = Pin(TRIG_PIN, Pin.OUT, Pin.PULL_DISABLE, 0)
 
@@ -69,7 +69,7 @@ echo = Pin(ECHO_PIN, Pin.IN, Pin.PULL_DISABLE, 0)
 
 def measure_distance():
 
-  /# 发送10us以上的高电平触发信号
+  # 发送10us以上的高电平触发信号
 
   trig.write(0)
 
@@ -83,7 +83,7 @@ def measure_distance():
 
 
 
-  /# 等待ECHO引脚变高（开始计时）
+  # 等待ECHO引脚变高（开始计时）
 
   timeout = utime.ticks_ms() + 200  # 超时200ms
 
@@ -95,7 +95,7 @@ def measure_distance():
 
   start_time = utime.ticks_us()
 
-  /# 等待ECHO引脚变低（结束计时）
+  # 等待ECHO引脚变低（结束计时）
 
   while echo.read() == 1:
 
@@ -109,7 +109,7 @@ def measure_distance():
 
 
 
-  /# 计算距离（声速取340m/s，即0.034cm/us，来回除以2）
+  # 计算距离（声速取340m/s，即0.034cm/us，来回除以2）
 
   pulse_duration = end_time - start_time
 
