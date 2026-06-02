@@ -1,16 +1,16 @@
 from machine import Pin
 import utime
 
-# 引脚定义（根据实际接线修改）
-TRIG_PIN = Pin.GPIO30  # 触发脚
-ECHO_PIN = Pin.GPIO31  # 回声脚
+# Pin definition (modified according to actual wiring)
+TRIG_PIN = Pin.GPIO30  # Trigger pin
+ECHO_PIN = Pin.GPIO31  # Echo pin
 
 TRIG = Pin(TRIG_PIN, Pin.OUT, Pin.PULL_DISABLE, 0)
 ECHO = Pin(ECHO_PIN, Pin.IN, Pin.PULL_DISABLE, 0)
 
-# 简单滑动滤波，取多次测量的平均值
+# Simple moving average filter, taking the average of multiple measurements
 dist_list = []
-FILTER_SIZE = 5  # 滤波窗口大小
+FILTER_SIZE = 5  # Filter window size
 
 def rcwl_9610a_get_dist():
     TRIG.off()
@@ -19,7 +19,7 @@ def rcwl_9610a_get_dist():
     utime.sleep_us(10)
     TRIG.off()
 
-    # 优化超时时间，避免误判
+    # Optimize timeout to avoid false positives
     t_out = 0
     while ECHO.value() == 0 and t_out < 30000:
         t_out += 1
@@ -29,7 +29,7 @@ def rcwl_9610a_get_dist():
     start = utime.ticks_us()
 
     t_out = 0
-    while ECHO.value() == 1 and t_out < 500000:  # 最大量程8m，对应约480000us
+    while ECHO.value() == 1 and t_out < 500000:  # Maximum range 8m, corresponding to about 480000us
         t_out += 1
     if t_out >= 500000:
         return None
@@ -43,14 +43,14 @@ while True:
     raw_dist = rcwl_9610a_get_dist()
     
     if raw_dist is not None and 2 <= raw_dist <= 800:
-        # 滑动滤波
+        # Simple moving average filter
         dist_list.append(raw_dist)
         if len(dist_list) > FILTER_SIZE:
             dist_list.pop(0)
         avg_dist = round(sum(dist_list) / len(dist_list), 2)
-        print("当前距离：", avg_dist, "cm")
+        print("Current distance:", avg_dist, "cm")
     else:
-        print("超出范围或信号异常")
+        print("Out of range or signal error")
 
     utime.sleep(0.2)
 

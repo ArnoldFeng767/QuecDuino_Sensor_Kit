@@ -27,22 +27,29 @@ Connect the peripherals to the development board one by one according to the tab
 ## 3.Driver Code
 
 ```python
-# Configure GPIO as input, pull-up
+from machine import Pin,ExtInt
+import utime
+
+# Global flag
+human_detected = False
+
+# Configure GPIO as input with pull-up functionality
 gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
-gpio1=Pin(Pin.GPIO30,Pin.OUT,Pin.PULL_DISABLE,0)
+gpio1 = Pin(Pin.GPIO30, Pin.OUT, Pin.PULL_DISABLE, 0)
 
 def main():
-  # Assume the sensor outputs high level (1) when tilt is detected
-  while True:
-      if gpio.read() == 0:
-        print("Magnetic field change detected")
-        gpio1.write(1)
-      else:
-        print("No magnetic field change detected")
-        gpio1.write(0)
-      utime.sleep(1)
+    # When the sensor detects a magnetic field change, it outputs a low level (0).
+    while True:
+        if gpio.read() == 0:
+            print("Magnetic field change detected")
+            gpio1.write(1)
+        else:
+            print("No magnetic field change detected")
+            gpio1.write(0)
+        utime.sleep(1)
+        
 
 if __name__ == '__main__':
-  main()
+    main()
 ```
 

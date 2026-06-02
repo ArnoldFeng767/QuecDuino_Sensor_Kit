@@ -23,28 +23,25 @@ Connect the peripheral to the development board one-to-one according to the tabl
 ## 3.Driver Code
 
 ```python
-/# 配置GPIO为输入，上拉
+from machine import Pin
+import utime
 
+
+# Configure GPIO as input with pull-up
 gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
 
+
 def main():
+    # Assuming that the sensor detects an inclination, it outputs a low level (0).
+    while True:
+        if gpio.read() == 0:
+            print("Tilt detected")
+        else:
+            print("Level state")
+        utime.sleep(1)
+        
 
-  /# 假设传感器检测到触摸时输出低电平（0）
-
-  while True:
-
-     if gpio.read() == 0:
-
-       print("检测到倾斜")
-
-     else:
-
-       print("水平状态")
-
-     utime.sleep(1)
-
-if name == 'main':
-
-  main()
+if __name__ == '__main__':
+    main()
 ```
 

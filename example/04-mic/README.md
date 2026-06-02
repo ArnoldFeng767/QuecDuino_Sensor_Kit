@@ -26,12 +26,14 @@ from machine import Pin
 import _thread
 import utime
 
+# Voice-controlled LED Light
+
 def fun():
     while True:
         num=adc.read(adc.ADC1)
-        utime.sleep_ms(500)#出现具体电压值，通过电压值控制占空比
+        utime.sleep_ms(500)# The specific voltage value appears, and the duty cycle is controlled by the voltage value
         if num>200:
-            LED.write(1)
+            LED.write(1)# The LED lights up when there is sound
             utime.sleep(2)
             LED.write(0)
         print(num)

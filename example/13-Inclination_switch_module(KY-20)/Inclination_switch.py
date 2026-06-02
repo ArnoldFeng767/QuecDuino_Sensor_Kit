@@ -12,17 +12,17 @@ from machine import Pin
 import utime
 
 
-# 配置GPIO为输入，上拉
+# Configure GPIO as input with pull-up
 gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
 
 
 def main():
-    # 假设传感器检测到触摸时输出低电平（0）
+    # Assuming that the sensor detects an inclination, it outputs a low level (0).
     while True:
         if gpio.read() == 0:
-            print("检测到倾斜")
+            print("Tilt detected")
         else:
-            print("水平状态")
+            print("Level state")
         utime.sleep(1)
         
 

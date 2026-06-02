@@ -16,17 +16,17 @@ import utime
 def fun():
     while True:
         num=adc.read(adc.ADC1)
-        utime.sleep(1)#出现具体电压值，通过电压值控制占空比
+        utime.sleep(1)#A specific voltage value is obtained, and the duty cycle is controlled based on this voltage value.
         print(num)
         return num
 
 def LED_SW(num):
     if num<50:
-        LED.write(1)
-        print("光线较强")
-    else:
         LED.write(0)
-        print("光线较弱")
+        print("Light is strong, close led")
+    else:
+        LED.write(1)
+        print("Light is weak, open led")
 
 if __name__=='__main__':
     LED=Pin(Pin.GPIO31,Pin.OUT,Pin.PULL_DISABLE,0)

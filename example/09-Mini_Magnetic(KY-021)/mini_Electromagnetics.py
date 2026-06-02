@@ -11,21 +11,21 @@
 from machine import Pin,ExtInt
 import utime
 
-# 全局标志位
+# Global flag
 human_detected = False
 
-# 配置GPIO为输入，上拉
+# Configure GPIO as input with pull-up functionality
 gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
-gpio1=Pin(Pin.GPIO30,Pin.OUT,Pin.PULL_DISABLE,0)
+gpio1 = Pin(Pin.GPIO30, Pin.OUT, Pin.PULL_DISABLE, 0)
 
 def main():
-    # 假设传感器检测到倾斜时输出高电平（1）
+    # When the sensor detects a magnetic field change, it outputs a low level (0).
     while True:
         if gpio.read() == 0:
-            print("有磁场变化")
+            print("Magnetic field change detected")
             gpio1.write(1)
         else:
-            print("没有磁场变化")
+            print("No magnetic field change detected")
             gpio1.write(0)
         utime.sleep(1)
         

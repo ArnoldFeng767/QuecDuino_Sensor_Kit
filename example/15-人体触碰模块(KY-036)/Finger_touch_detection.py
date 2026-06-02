@@ -11,8 +11,8 @@ from machine import Pin
 import utime
 
 
-# 配置GPIO为输入，上拉
-gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
+# 配置GPIO为输入，下拉
+gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PD)
 
 
 def main():

@@ -10,27 +10,27 @@
 from machine import Pin, ExtInt
 import utime
 
-# KY-032 引脚说明:
+# KY-032 Pin Description:
 #   VCC: 3.3-5V
-#   GND: 接地
-#   OUT: 数字输出 (无障碍物=高电平1, 有障碍物=低电平0)
-#   EN:  使能引脚 (可选，悬空默认使能)
-# 注意: 模块上有两个电位器可调节检测距离和灵敏度
+#   GND: Ground
+#   OUT: Digital Output (No Obstacle = High Level 1, Obstacle Present = Low Level 0)
+#   EN: Enable Pin (Optional, Default Enabled when left unconnected)
+# Note: There are two potentiometers on the module that can be adjusted to control the detection distance and sensitivity.
 
-# 配置GPIO为输入，上拉
+# Configure GPIO as input with pull-up functionality
 gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
 
-# ==================== 轮询模式 ====================
+# ==================== Polling Mode ====================
 def main_polling():
     print("KY-032 obstacle avoidance sensor (polling mode)")
     while True:
         if gpio.read() == 0:
-            print("检测到障碍物")
+            print("Obstacle detected")
         else:
-            print("无障碍物")
+            print("No obstacle")
         utime.sleep_ms(200)
 
-# ==================== 中断模式 ====================
+# ==================== Interrupt Mode ====================
 obstacle_flag = False
 
 def irq_handler(args):
@@ -45,13 +45,13 @@ def main_interrupt():
     print("KY-032 obstacle avoidance sensor (interrupt mode)")
     while True:
         if obstacle_flag:
-            print("检测到障碍物")
+            print("Obstacle detected")
             obstacle_flag = False
         else:
-            print("无障碍物")
+            print("No obstacle")
         utime.sleep_ms(200)
 
 
 if __name__ == '__main__':
     main_polling()
-    # main_interrupt()  # 切换为中断模式
+    # main_interrupt()  # Switch to interrupt mode

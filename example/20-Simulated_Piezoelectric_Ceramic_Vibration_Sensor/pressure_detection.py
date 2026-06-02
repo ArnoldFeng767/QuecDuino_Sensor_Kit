@@ -16,7 +16,8 @@ def fun():
     while True:
         num=adc.read(adc.ADC1)
         utime.sleep(0.2)
-        print(num)
+        print(num) # The larger the value, the greater the impact/vibration intensity
+        
 
     
 if __name__=='__main__':

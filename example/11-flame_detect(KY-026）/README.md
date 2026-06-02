@@ -30,25 +30,22 @@ Connect the peripheral to the development board one-to-one according to the tabl
 Analog Signal
 
 ```python
+from misc import ADC
+from machine import Pin
+import _thread
+import utime
+
 def fun():
-
-  while True:
-
-     num=adc.read(adc.ADC0)
-
-     utime.sleep(1)
-
-     print(num)
+    while True:
+        num=adc.read(adc.ADC0)
+        utime.sleep(1)
+        print(num)
 
 
-
-if name=='main':
-
-  adc = ADC()
-
-  adc.open()
-
-  _thread.start_new_thread(fun,())
+if __name__=='__main__':
+    adc = ADC()
+    adc.open()
+    _thread.start_new_thread(fun,())
 ```
 
 
@@ -56,22 +53,24 @@ if name=='main':
 Digital Signal
 
 ```python
-gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
-gpio1 = Pin(Pin.GPIO30, Pin.OUT, Pin.PULL_DISABLE, 0)
+from machine import Pin
+import utime
 
+#Configure GPIO as input with pull-down
+gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PD)
+gpio1=Pin(Pin.GPIO30,Pin.OUT,Pin.PULL_DISABLE,0)
 def main():
-  /# Assume the sensor outputs low level (0) when flame is detected
-  while True:
-     if gpio.read() == 0:
-       gpio1.write(1)
-       print("Flame detected")
-     else:
-       gpio1.write(0)
-       print("No flame detected")
-     utime.sleep(1)
-
+    # When the sensor detects a flame, it outputs a high level (1).
+    while True:
+        if gpio.read() == 0:
+            gpio1.write(0)
+        else:
+            gpio1.write(1)
+            print("Flames were detected.")
+        utime.sleep_ms(100)
 if __name__ == "__main__":
-  main()
+    main()
+        
 ```
 
 ``    

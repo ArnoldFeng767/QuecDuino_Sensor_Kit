@@ -25,9 +25,9 @@ Connect the peripheral to the development board one-to-one according to the tabl
 ## 3.Driver Code
 
 ```` python
-# Configure GPIO as input with pull-up
+#Configure the GPIO as an input with a pull-down resistor.
 
-gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
+gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PD)
 
 def main():
 

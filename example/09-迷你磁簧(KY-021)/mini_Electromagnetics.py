@@ -19,7 +19,7 @@ gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
 gpio1=Pin(Pin.GPIO30,Pin.OUT,Pin.PULL_DISABLE,0)
 
 def main():
-    # 假设传感器检测到倾斜时输出高电平（1）
+    # 传感器检测到磁场变化时输出低电平（0）
     while True:
         if gpio.read() == 0:
             print("有磁场变化")

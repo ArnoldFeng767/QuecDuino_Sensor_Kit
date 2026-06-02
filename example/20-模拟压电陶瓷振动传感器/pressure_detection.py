@@ -16,7 +16,7 @@ def fun():
     while True:
         num=adc.read(adc.ADC1)
         utime.sleep(0.2)
-        print(num)
+        print(num) #数值越大，敲击/震动力度越大
 
     
 if __name__=='__main__':

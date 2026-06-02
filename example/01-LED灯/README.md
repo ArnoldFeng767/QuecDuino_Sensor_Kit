@@ -32,14 +32,15 @@ LED原理及产业分类LED是发光二极体( Light EmitTIng Diode, LED)的简�
 
 ```python
 from machine import Pin
+import utime
 
-/# 创建gpio对象
+led=Pin(Pin.GPIO31,Pin.OUT,Pin.PULL_DISABLE,1)
 
-gpio1 = Pin(Pin.GPIO31, Pin.OUT, Pin.PULL_DISABLE, 1)
-
-/# 设置引脚电平
-
-gpio1.write(1)
+while True:
+    led.write(0) #灭
+    utime.sleep(1)
+    led.write(1) #亮
+    utime.sleep(1)
 ```
 
  

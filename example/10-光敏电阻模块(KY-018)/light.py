@@ -22,11 +22,11 @@ def fun():
 
 def LED_SW(num):
     if num<50:
-        LED.write(1)
-        print("光线较强")
-    else:
         LED.write(0)
-        print("光线较弱")
+        print("光线较强，关灯")
+    else:
+        LED.write(1)
+        print("光线较弱，开灯")
 
 if __name__=='__main__':
     LED=Pin(Pin.GPIO31,Pin.OUT,Pin.PULL_DISABLE,0)

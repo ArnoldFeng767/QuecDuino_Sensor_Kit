@@ -27,7 +27,7 @@ Connect the peripheral to the development board one-to-one according to the tabl
 
 ```python
 /# Configure GPIO as input with pull-up
-gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
+gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PD)
 gpio1 = Pin(Pin.GPIO30, Pin.OUT, Pin.PULL_DISABLE, 0)
 
 def main():

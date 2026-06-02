@@ -28,7 +28,7 @@
 ```python
 /# 配置GPIO为输入，上拉
 
-gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
+gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PD)
 
 gpio1=Pin(Pin.GPIO30,Pin.OUT,Pin.PULL_DISABLE,0)
 

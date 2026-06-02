@@ -11,17 +11,17 @@ from machine import Pin
 import utime
 
 
-# 配置GPIO为输入，上拉
-gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
+# Configure the GPIO as an input with a pull-down resistor.
+gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PD)
 
 
 def main():
-    # 假设传感器检测到触摸时输出高电平（1）
+    # When the sensor detects a touch, it outputs a high level (1)
     while True:
         if gpio.read() == 1:
-            print("检测到触摸")
+            print("Touch detected")
         else:
-            print("没有检测到触摸")
+            print("No touch detected")
         utime.sleep(1)
         
 

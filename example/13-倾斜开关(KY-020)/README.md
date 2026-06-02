@@ -29,7 +29,7 @@ gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
 
 def main():
 
-  /# 假设传感器检测到触摸时输出低电平（0）
+  /# 假设传感器检测到倾斜时输出低电平（0）
 
   while True:
 
