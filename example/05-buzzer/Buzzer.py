@@ -13,7 +13,7 @@ import utime
 
 
 class ActiveBuzzer:
-    """有源蜂鸣器驱动类。"""
+    """Active buzzer driver type."""
 
     def __init__(self, pin=Pin.GPIO31, active_level=1):
         self.active_level = active_level

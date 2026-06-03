@@ -28,7 +28,7 @@ import utime
 
 
 class Mic:
-    """麦克风传感器封装类。"""
+    """Microphone sensor packaging class."""
 
     def __init__(self, adc_channel=None, led_pin=Pin.GPIO31, threshold=200, sample_ms=500, led_on_sec=2):
         self.threshold = threshold

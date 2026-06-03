@@ -16,10 +16,8 @@ import utime
 class Mic(object):
     """Microphone sensor packaging class."""
 
-    def __init__(self, adc_channel=None, led_pin=Pin.GPIO31, threshold=200, sample_ms=500, led_on_sec=2):
+    def __init__(self, adc_channel=None, led_pin=Pin.GPIO31, threshold=200):
         self.threshold = threshold
-        self.sample_ms = sample_ms
-        self.led_on_sec = led_on_sec
         self.led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
         self.adc = ADC()
         self.adc_channel = self.adc.ADC1 if adc_channel is None else adc_channel
@@ -34,7 +32,7 @@ class Mic(object):
     def handle_sound(self, value):
         if value > self.threshold:
             self.led.write(1)
-            utime.sleep(self.led_on_sec)
+            utime.sleep(2)
             self.led.write(0)
 
     def monitor(self):
@@ -43,7 +41,7 @@ class Mic(object):
             value = self.read_value()
             print(value)
             self.handle_sound(value)
-            utime.sleep_ms(self.sample_ms)
+            utime.sleep_ms(500)
 
     def start(self):
         self.open()
@@ -57,8 +55,6 @@ if __name__ == '__main__':
     mic = Mic(
         led_pin=Pin.GPIO31,
         threshold=200,
-        sample_ms=500,
-        led_on_sec=2,
     )
     mic.start()
 
