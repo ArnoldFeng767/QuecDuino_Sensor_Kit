@@ -1,45 +1,59 @@
-# Tilt Switch Module
+# 倾斜开关模块
 
-## 1. Module Introduction
+## **一、** **模块介绍**
 
-The tilt switch is a **posture-sensing digital switch device**, also known as a ball switch or topple sensor. It is commonly used in tilt detection, anti-toppling protection, posture triggering, and intelligent alarm scenarios. It can automatically switch level signals when the module is tilted to a certain angle. It has the advantages of small size, no contacts, low power consumption, 3.3V/5V compatibility, direct GPIO detection, sensitive response, and long service life.
+倾斜开关是**姿态感应数字开关器件**，也被称作滚珠开关、倾倒传感器，常用于倾斜检测、防倒保护、姿态触发、智能报警场景；它能在模块倾斜到一定角度时自动切换电平信号，具备体积小、无触点、低功耗、3.3V/5V 兼容、直接 GPIO 检测、响应灵敏、寿命长等优点。
 
-**Working Principle**:
+**工作原理：**
 
-The module has a positive electrode, a negative electrode, and a signal terminal. When tilted, the internal ball/conductive liquid moves, turning the internal contacts on or off to output high/low levels. The development board can directly read the state to determine whether it is tilted.
+模块有正极、负极、信号端。倾斜时内部滚珠 / 导电液移动，使内部触点导通或断开，输出高低电平，开发板可直接读取状态判断是否倾斜。
 
-## 2. Connection Example
+## 二、 连接示例
 
-Connect the peripheral to the development board one-to-one according to the table and picture instructions:
+根据表格和图片指导，将外设与开发板一一对应连接
 
-| Peripheral  | Development Board |
-| ----------- | ----------------- |
-| Module（+） | 3.3V              |
-| Module（-） | GND               |
-| Module（S） | PIN4(GPIO31)      |
+| 外设          | 开发板       |
+| ------------- | ------------ |
+| 倾斜开关（+） | 3.3V         |
+| 倾斜开关（-） | GND          |
+| 倾斜开关（S） | PIN4(GPIO31) |
 
 ![](../../media/lnclination1.png)
 
-## 3.Driver Code
+## 三、 驱动代码
 
 ```python
-from machine import Pin
+rom machine import Pin
 import utime
 
 
-# Configure GPIO as input with pull-up
-gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
+class InclinationSwitch:
+    """Tilt switch sensor packaging class."""
 
+    def __init__(self, pin=Pin.GPIO31, trigger_level=0, pull=Pin.PULL_PU):
+        self.gpio = Pin(pin, Pin.IN, pull)
+        self.led = Pin(Pin.GPIO32, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self.trigger_level = trigger_level
+
+    def read_state(self):
+        return self.gpio.read()
+
+    def is_tilted(self):
+        return self.read_state() == self.trigger_level
+
+    def monitor(self):
+        while True:
+            if self.is_tilted():
+                self.led.write(1)
+                print("Tilt detected")
+            else:
+                self.led.write(0)
+                print("Level state")
+            utime.sleep(1)
 
 def main():
-    # Assuming that the sensor detects an inclination, it outputs a low level (0).
-    while True:
-        if gpio.read() == 0:
-            print("Tilt detected")
-        else:
-            print("Level state")
-        utime.sleep(1)
-        
+    tilt_switch = InclinationSwitch(pin=Pin.GPIO31, trigger_level=0, pull=Pin.PULL_PU)
+    tilt_switch.monitor()
 
 if __name__ == '__main__':
     main()

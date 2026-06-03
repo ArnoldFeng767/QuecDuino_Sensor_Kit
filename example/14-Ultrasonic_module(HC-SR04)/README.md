@@ -1,99 +1,144 @@
-# Ultrasonic Module
+# 超声波模块
 
-## 1. Module Introduction
+## **一、** **模块介绍**
 
-The working process of HC-SR04 is initiated by a "trigger signal" and feeds back the distance through an "echo signal", with the specific steps as follows:
+HC-SR04 的工作流程由 “触发信号” 启动，通过 “回响信号” 反馈距离，具体步骤如下：
 
-- Trigger ranging: STM32 outputs a high-level signal of at least 10μs to the Trig pin (high-precision delay is required, which has been implemented in the author's timer notes, please review);
-- The module automatically transmits/receives ultrasonic waves: After the Trig receives the trigger signal, the module will automatically send 8 40kHz square waves and start detecting whether the ultrasonic waves are reflected back;
-- Echo signal feedback: If the ultrasonic waves are reflected back, the module will output a high level through the Echo pin —— the duration of the high level = the total time for the ultrasonic waves to "transmit to return";
-- Distance calculation: Derived from the "time-distance" formula, the final distance = (Echo high-level duration × speed of sound) / 2.
+触发测距：STM32 向 Trig 引脚输出至少 10μs 的高电平信号（需高精度延时，笔者在定时器笔记中已实现，可回顾）；
 
-(Note: The speed of sound is 340m/s, divided by 2 because the ultrasonic waves need to "transmit→reflect→return", traveling twice the distance.)
+模块自动发送 / 接收超声波：Trig 接收到触发信号后，模块会自动发送 8 个 40kHz 的方波，同时开始检测是否有超声波反射回来；
 
-**Core Parameters**:
+回响信号反馈：若超声波反射回来，模块会通过 Echo 引脚输出高电平 —— 高电平的持续时间 = 超声波从 “发射到返回” 的总时间；
 
-- Working voltage: **3.3V–5V**
-- Measuring range: **2cm–450cm**
-- Resolution: 1mm
-- Measuring angle: about 15°
-- Output mode: **GPIO / I2C / UART**
-- Features: non-contact, high precision, fast response, not affected by light and color
+距离计算：根据 “时间 - 距离” 公式推导，最终距离 = （Echo 高电平持续时间 × 声速） / 2
 
-​	**schematic diagram**
+（注：声速取 340m/s，除以 2 是因为超声波需 “发射→反射→返回”，走了两倍距离）。
+
+**1、核心参数**
+
+- 工作电压：**3.3V–5V**
+- 测量范围：**2cm–450cm**
+- 分辨率：1mm
+- 测量角度：约 15°
+- 输出方式：**GPIO / I2C / UART**
+- 特点：非接触、精度高、反应快、不受光线颜色影响
+
+**2、原理图**
 
 ![](../../media/hc1.png)
 
-​	**sequence chart**
+**3、时序图**
 
 ![](../../media/hc2.png)
 
  
 
-## 2. Connection Example
+## **二、** **连接示例**
 
-Connect the peripheral to the development board one-to-one according to the table and picture instructions:
+根据表格和图片指导，将外设与开发板一一对应连接
 
-| **Peripheral Devices** | **Module**   |
-| ---------------------- | ------------ |
-| Ultrasonic（+）        | VCC(5V)      |
-| Ultrasonic（Trig）     | Pin5(GPIO30) |
-| Ultrasonic（Echo）     | Pin4(GPIO31) |
-| Ultrasonic（-）        | GND          |
+| **外设**           | **模块**     |
+| ------------------ | ------------ |
+| Ultrasonic（+）    | VCC(5V)      |
+| Ultrasonic（Trig） | Pin5(GPIO30) |
+| Ultrasonic（Echo） | Pin4(GPIO31) |
+| Ultrasonic（-）    | GND          |
 
 ![](../../media/hc3.png)
 
-##  **3.Driving Code**
+## **三、** **驱动代码**
 
 ```python
 from machine import Pin
+
 import utime
 
-# Pin definition (modify according to actual wiring)
-TRIG_PIN = Pin.GPIO30  # Trigger pin
-ECHO_PIN = Pin.GPIO31  # Echo pin
+# 引脚定义（根据实际接线修改）
 
-# Initialize pins
+TRIG_PIN = Pin.GPIO30  # 触发脚
+
+ECHO_PIN = Pin.GPIO31  # 回声脚
+
+
+
+# 初始化引脚
+
 trig = Pin(TRIG_PIN, Pin.OUT, Pin.PULL_DISABLE, 0)
+
 echo = Pin(ECHO_PIN, Pin.IN, Pin.PULL_DISABLE, 0)
 
 def measure_distance():
-  # Send a high-level trigger signal for more than 10us
-  trig.write(0)
-  utime.sleep_us(2)
-  trig.write(1)
-  utime.sleep_us(10)
+
+  # 发送10us以上的高电平触发信号
+
   trig.write(0)
 
-  # Wait for the ECHO pin to go high (start timing)
-  timeout = utime.ticks_ms() + 200  # Timeout 200ms
+  utime.sleep_us(2)
+
+  trig.write(1)
+
+  utime.sleep_us(10)
+
+  trig.write(0)
+
+
+
+  # 等待ECHO引脚变高（开始计时）
+
+  timeout = utime.ticks_ms() + 200  # 超时200ms
+
   while echo.read() == 0:
+
      if utime.ticks_ms() > timeout:
-       return -1  # Timeout, measurement failed
+
+       return -1  # 超时，测量失败
+
   start_time = utime.ticks_us()
-  
-  # Wait for the ECHO pin to go low (end timing)
+
+  # 等待ECHO引脚变低（结束计时）
+
   while echo.read() == 1:
+
      if utime.ticks_ms() > timeout:
-       return -1  # Timeout, measurement failed
+
+       return -1  # 超时，测量失败
+
+
 
   end_time = utime.ticks_us()
 
-  # Calculate distance (speed of sound = 340m/s = 0.034cm/us, divided by 2 for round trip)
+
+
+  # 计算距离（声速取340m/s，即0.034cm/us，来回除以2）
+
   pulse_duration = end_time - start_time
+
   distance = (pulse_duration * 0.034) / 2
+
+
 
   return round(distance, 2)
 
-if __name__ == "__main__":
-  print("RCWL-9206 Ultrasonic Ranging Module Test (GPIO Mode)")
-  print("Measurement interval >200ms to avoid interference")
+
+
+if name == "main":
+
+  print("RCWL-9206 超声波测距模块测试（GPIO模式）")
+
+  print("测量间隔200ms以上，避免干扰")
+
   while True:
+
      dist = measure_distance()
+
      if dist == -1:
-       print("Measurement timeout/failed")
+
+       print("测量超时/失败")
+
      else:
-       print("Current distance: {} cm".format(dist))
-     utime.sleep(0.2)  # Interval between two measurements ≥200ms
+
+       print("当前距离: {} cm".format(dist))
+
+     utime.sleep(0.2)  # 两次测量间隔不小于200ms
 ```
 

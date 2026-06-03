@@ -1,24 +1,24 @@
+# Microphone Module
 
+## 1. Module Introduction
 
-# 麦克风模块
+A microphone is short for an **acoustic-electric conversion device**, also known as a sound detection sensor module. It can detect the sound intensity in the surrounding environment and convert it into an electrical signal for output. It contains a built-in microphone that can capture sound signals. The sensitivity of the module to sound can be adjusted by tuning the sensitivity potentiometer on the module. It supports analog output mode, meeting the requirements of most applications and design needs.
 
-## **一、** **模块介绍**
+## 2. Connection Example
 
-麦克风是**声电转换器件**的简称，也被称为声音检测传感器模块。它可以检测周围环境中的声音强度，并转换为电信号输出。它内部包含一个麦克风，可以捕捉声音信号。通过调节模块上的感敏度电位器，可以调节模块对声音的敏感度。它支持模拟输出模式，满足大部分应用及设计需求。
+Connect the peripheral to the development board one-to-one according to the guidance of the table and picture.
 
-## 二、 连接示例
-
-根据表格和图片指导，将外设与开发板一一对应连接
-
-| 外设     | 开发板   |
-| -------- | -------- |
-| MIC（+） | 3.3V     |
-| MIC（-） | GND      |
-| MIC（S） | A1(ADC1) |
+| Peripheral | Development Board |
+| ---------- | ----------------- |
+| MIC（+）   | 3.3V              |
+| MIC（-）   | GND               |
+| MIC（S）   | A1(ADC1)          |
 
 ![](../../media/mic1.png) 
 
-## 三、 驱动代码
+
+
+## 3.Driver Code
 
 ```python
 from misc import ADC

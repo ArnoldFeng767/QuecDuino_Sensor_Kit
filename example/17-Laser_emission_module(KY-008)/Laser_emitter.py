@@ -1,9 +1,9 @@
 """
 @file      : Laser_emitter.py
 @author    : Aaron Chen (aaron.chen@example.com)
-@brief     : Laser emitter control using GPIO
-@version   : 0.1
-@date      : 2026-04-21
+@brief     : Class-based laser emitter control using GPIO
+@version   : 0.2
+@date      : 2026-06-02
 @copyright : Copyright (c) 2026
 """
 
@@ -11,15 +11,36 @@
 from machine import Pin
 import utime
 
-if __name__=='__main__':
-    laser=Pin(Pin.GPIO31,Pin.OUT,Pin.PULL_DISABLE,0)
-    while True:
-        laser.write(1)
+class LaserEmitter:
+    """Laser emission module packaging class."""
+
+    def __init__(self, pin=Pin.GPIO31, active_level=1):
+        self.active_level = active_level
+        self.inactive_level = 0 if active_level else 1
+        self.gpio = Pin(pin, Pin.OUT, Pin.PULL_DISABLE, self.inactive_level)
+
+    def on(self):
+        self.gpio.write(self.active_level)
         print("laser on")
-        utime.sleep(2)
-        laser.write(0)
+
+    def off(self):
+        self.gpio.write(self.inactive_level)
         print("laser off")
+
+    def blink(self,):
+        self.on()
         utime.sleep(2)
+        self.off()
+        utime.sleep(2)
+
+    def demo(self):
+        while True:
+            self.blink()
+
+
+if __name__ == '__main__':
+    laser = LaserEmitter(pin=Pin.GPIO31, active_level=1)
+    laser.demo()
         
         
         

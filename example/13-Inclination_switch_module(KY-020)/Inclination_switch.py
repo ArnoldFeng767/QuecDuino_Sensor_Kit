@@ -1,9 +1,9 @@
 """
 @file      : Inclination_switch.py
 @author    : Aaron Chen (aaron.chen@example.com)
-@brief     : Inclination switch detection using GPIO interrupt
-@version   : 0.1
-@date      : 2026-04-22
+@brief     : Class-based inclination switch detection using GPIO polling
+@version   : 0.2
+@date      : 2026-06-02
 @copyright : Copyright (c) 2026
 """
 
@@ -12,19 +12,33 @@ from machine import Pin
 import utime
 
 
-# Configure GPIO as input with pull-up
-gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
+class InclinationSwitch:
+    """Tilt switch sensor packaging class."""
 
+    def __init__(self, pin=Pin.GPIO31, trigger_level=0, pull=Pin.PULL_PU):
+        self.gpio = Pin(pin, Pin.IN, pull)
+        self.led = Pin(Pin.GPIO32, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self.trigger_level = trigger_level
+
+    def read_state(self):
+        return self.gpio.read()
+
+    def is_tilted(self):
+        return self.read_state() == self.trigger_level
+
+    def monitor(self):
+        while True:
+            if self.is_tilted():
+                self.led.write(1)
+                print("Tilt detected")
+            else:
+                self.led.write(0)
+                print("Level state")
+            utime.sleep(1)
 
 def main():
-    # Assuming that the sensor detects an inclination, it outputs a low level (0).
-    while True:
-        if gpio.read() == 0:
-            print("Tilt detected")
-        else:
-            print("Level state")
-        utime.sleep(1)
-        
+    tilt_switch = InclinationSwitch(pin=Pin.GPIO31, trigger_level=0, pull=Pin.PULL_PU)
+    tilt_switch.monitor()
 
 if __name__ == '__main__':
     main()

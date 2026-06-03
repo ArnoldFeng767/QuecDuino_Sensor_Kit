@@ -1,64 +1,84 @@
-# Water Level Detection Module
+# 水位检测模块
 
-## 1. Module Introduction
+## **一、** **模块介绍**
 
-The water level monitoring module is a **resistive liquid detection sensor**, which is used in scenarios such as detecting water level height, presence or absence of water, and water leakage alarm; it detects liquid level changes through conductive probes and outputs analog signals, with advantages such as **fast response, small size, 3.3V compatibility, direct connection to ADC, and long service life**.
+水位监测模块是**电阻式液体检测传感器**，用于检测水位高度、有无水、漏水报警等场景；通过导电探针检测液面变化，输出模拟，具备**响应快、体积小、3.3V兼容、直接接 ADC、使用寿命长**等优点。
 
-**Working Principle:**
+**工作原理：**
 
-The Water Sensor can monitor the water level. This module mainly utilizes the current amplification principle of transistors: when the liquid level height makes the base of the transistor conduct with the positive pole of the power supply, a certain amount of current is generated between the base and emitter of the transistor, and at this time, a current with a certain amplification factor is generated between the collector and emitter of the transistor. This current generates a characteristic voltage through the resistor at the emitter, which is collected by the AD converter.
+Water Sensor水位传感器能够监测水位。该模块主要是利用三极管的电流放大原理：当液位高度使三极管的基极与电源正极导通的时候，在三极管的基极和发射极之间就会产生一定大小的电流，此时在三极管的集电极和发射极之间就会产生一个一定放大倍数的电流，该电流经过发射极的电阻产生特点电压，被AD转换器采集。
 
-## 2. Connection Example
+## 二、 连接示例
 
-Connect the peripherals to the development board one by one according to the table and picture instructions
+根据表格和图片指导，将外设与开发板一一对应连接
 
-| Peripheral | Development Board |
-| ---------- | ----------------- |
-| Module (+) | 3.3V              |
-| Module (-) | GND               |
-| Module (S) | A1（ADC1）        |
+| 外设      | 开发板     |
+| --------- | ---------- |
+| 模块（+） | 3.3V       |
+| 模块（-） | GND        |
+| 模块（S） | A1（ADC1） |
 
 ![](../../media/water1.png)
 
-## 3.Driver Code
+## 三、 驱动代码
 
 ```python
 from misc import ADC
-from machine import Pin
 import _thread
 import utime
 
-# Sensor parameter configuration
-REF_VOLTAGE = 3300       # Reference voltage (mV), 3.3V supply is 3300, 5V supply is 5000
-MAX_WATER_LEVEL = 60     # Maximum water level range (mm), The height of the Water Sensor detection area is 60mm
-SAMPLE_COUNT = 10        # Average filtering sampling frequency
-SAMPLE_INTERVAL_MS = 5   # Sampling interval per time (ms)
+class WaterLevelSensor:
+    """Water level sensor packaging type"""
 
-def water_level_get(adc):
-    """
-    Get water level value (mm)
-    Through multiple ADC sampling to take average filtering, then convert to actual water level depth
-    Formula: water_level = (voltage / ref_voltage) * max_water_level
-    """
-    adc_sum = 0
-    for _ in range(SAMPLE_COUNT):
-        adc_sum += adc.read(adc.ADC1)
-        utime.sleep_ms(SAMPLE_INTERVAL_MS)
-    voltage_avg = adc_sum / SAMPLE_COUNT  # Average voltage value (mV)
+    def __init__(self, adc_channel=None, ref_voltage=3300, max_water_level=60, sample_count=10, sample_interval_ms=5):
+        self.adc = ADC()
+        self.adc_channel = self.adc.ADC1 if adc_channel is None else adc_channel
+        self.ref_voltage = ref_voltage
+        self.max_water_level = max_water_level
+        self.sample_count = sample_count
+        self.sample_interval_ms = sample_interval_ms
+        self.is_running = False
 
-    water_level = (voltage_avg / REF_VOLTAGE) * MAX_WATER_LEVEL
-    return voltage_avg, round(water_level, 2)
-def fun():
-    while True:
-        voltage, level = water_level_get(adc)
-        print("Voltage: {:.1f} mV | Water Level: {:.2f} mm".format(voltage, level))
-        utime.sleep(1)
+    def open(self):
+        self.adc.open()
+    def read_voltage(self):
+        adc_sum = 0
+        for _ in range(self.sample_count):
+            adc_sum += self.adc.read(self.adc_channel)
+            utime.sleep_ms(self.sample_interval_ms)
+        return adc_sum / self.sample_count
+
+    def read_level(self):
+        voltage_avg = self.read_voltage()
+        water_level = (voltage_avg / self.ref_voltage) * self.max_water_level
+        return voltage_avg, round(water_level, 2)
+
+    def monitor(self, interval_sec=1):
+        self.is_running = True
+        while self.is_running:
+            voltage, level = self.read_level()
+            print("Voltage: {:.1f} mV | Water Level: {:.2f} mm".format(voltage, level))
+            utime.sleep(interval_sec)
+
+    def start(self, interval_sec=1):
+        self.open()
+        _thread.start_new_thread(self.monitor, (interval_sec,))
+
+    def stop(self):
+        self.is_running = False
 
 
 if __name__ == '__main__':
-    adc = ADC()
-    adc.open()
-    _thread.start_new_thread(fun, ())
+    water_sensor = WaterLevelSensor(
+        ref_voltage=3300,
+        max_water_level=60,
+        sample_count=10,
+        sample_interval_ms=5,
+    )
+    water_sensor.start(interval_sec=1)
+
+    while True:
+        utime.sleep_ms(1000)
 ```
 
  
