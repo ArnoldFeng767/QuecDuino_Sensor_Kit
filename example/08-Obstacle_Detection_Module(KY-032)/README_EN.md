@@ -30,53 +30,79 @@ Connect the peripherals to the development board one by one according to the tab
 from machine import Pin, ExtInt
 import utime
 
-# KY-032 Pin Description:
-#   VCC: 3.3-5V
-# GND: Ground
-#   OUT: Digital Output (No Obstacle = High Level 1, Obstacle Present = Low Level 0)
-#   EN: Enable Pin (Optional, default enabled when floating)
-# Note: There are two potentiometers on the module to adjust the detection distance and sensitivity
 
-# Configure GPIO as input, pull-up
-gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PU)
+class ObstacleSensor(object):
+    """Infrared obstacle avoidance sensor class (KY-032), supports polling and interrupt modes.
 
-# ==================== Polling Mode ====================
-def main_polling():
-    print("KY-032 obstacle avoidance sensor (polling mode)")
-    while True:
-        if gpio.read() == 0:
-            print("Obstacle detected")
-        else:
-            print("No Obstacles")
-        utime.sleep_ms(200)
+    Sensor output logic:
+        - No obstacle: OUT outputs high level (1)
+        - Obstacle detected: OUT outputs low level (0)
 
+    Application scenarios: robot obstacle avoidance, auto door sensing, limit detection, smart trash can, etc.
+    """
 
-# ==================== Interrupt Mode ====================
-obstacle_flag = False
+    def __init__(self, pin=Pin.GPIO31, pull=Pin.PULL_PU):
+        """Initialize obstacle sensor instance.
 
-def irq_handler(args):
-    global obstacle_flag
-    if gpio.read() == 0:
-        obstacle_flag = True
+        Args:
+            pin: GPIO pin number, defaults to GPIO31
+            pull: Pull-up/down config, defaults to pull-up (Pin.PULL_PU)
+        """
+        self.gpio = Pin(pin, Pin.IN, pull)
+        self.obstacle_flag = False
+        self._extint = None
 
-def main_interrupt():
-    global obstacle_flag
-    ext = ExtInt(ExtInt.GPIO31, ExtInt.IRQ_FALLING, ExtInt.PULL_PU, irq_handler)
-    ext.enable()
-    print("KY-032 obstacle avoidance sensor (interrupt mode)")
-    while True:
-        if obstacle_flag:
-            print("Obstacle detected")
-            obstacle_flag = False
-        else:
-            print("No Obstacles")
-        utime.sleep_ms(200)
+    def read_state(self):
+        """Read current sensor state."""
+        return self.gpio.read()
+
+    def is_obstacle(self):
+        """Check if obstacle is currently detected."""
+        return self.read_state() == 0
+
+    def _irq_handler(self, args):
+        """Interrupt callback, sets flag when obstacle detected."""
+        if self.gpio.read() == 0:
+            self.obstacle_flag = True
+
+    def monitor_polling(self, interval_ms=200):
+        """Polling mode: continuously reads sensor state.
+
+        Suitable for scenarios with low real-time requirements, such as limit detection.
+        """
+        print("[ObstacleSensor] Polling mode started")
+        while True:
+            if self.is_obstacle():
+                print("Obstacle detected")
+            else:
+                print("No obstacle")
+            utime.sleep_ms(interval_ms)
+
+    def monitor_interrupt(self, interval_ms=200):
+        """Interrupt mode: obstacle triggers interrupt, main loop checks flag.
+
+        Suitable for fast-response scenarios, such as robot obstacle avoidance.
+        """
+        self._extint = ExtInt(self.gpio, ExtInt.IRQ_FALLING, Pin.PULL_PU, self._irq_handler)
+        self._extint.enable()
+        print("[ObstacleSensor] Interrupt mode started")
+        while True:
+            if self.obstacle_flag:
+                print("Obstacle detected")
+                self.obstacle_flag = False
+            else:
+                print("No obstacle")
+            utime.sleep_ms(interval_ms)
 
 
 if __name__ == '__main__':
-    main_polling()
-    # main_interrupt()  # Switch to interrupt mode
+    sensor = ObstacleSensor(pin=Pin.GPIO31)
 
+    # Polling mode
+    sensor.monitor_polling(interval_ms=200)
+
+    # Interrupt mode (uncomment to switch)
+    # sensor.monitor_interrupt(interval_ms=200)
 ```
 
  
