@@ -38,16 +38,30 @@ KY-025模块通常引出4个标准引脚，具体的定义如下：
 
 ## 驱动代码
 
+### ADC 模式（模拟量读取磁场强度）
+
 ```python
 from misc import ADC
 from machine import Pin
 import _thread
 import utime
 
+
 class MagneticReedSwitch(object):
-    """Magnetic reed switch sensor packaging class."""
+    """磁簧开关传感器类（ADC 模式），通过模拟量读取磁场强度变化。
+
+    应用场景：门窗防盗、智能计数、位置限位检测、无触点开关等。
+    当 ADC 值超过阈值时判定为检测到磁场，点亮 LED 指示。
+    """
 
     def __init__(self, adc_channel=None, led_pin=Pin.GPIO31, threshold=100):
+        """初始化磁簧开关传感器实例（ADC 模式）。
+
+        Args:
+            adc_channel: ADC 通道，默认使用 ADC1
+            led_pin: LED 指示灯 GPIO 引脚号，默认 GPIO31
+            threshold: 磁场强度阈值，默认 100
+        """
         self.threshold = threshold
         self.led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
         self.adc = ADC()
@@ -55,33 +69,40 @@ class MagneticReedSwitch(object):
         self.is_running = False
 
     def open(self):
+        """打开 ADC 通道。"""
         self.adc.open()
 
-
     def read_value(self):
+        """读取当前磁场强度的 ADC 值。"""
         return self.adc.read(self.adc_channel)
 
-    
     def handle_magnetic_field(self, value):
+        """根据磁场强度控制 LED 指示。"""
         if value > self.threshold:
             self.led.write(1)
         else:
             self.led.write(0)
 
     def monitor(self):
+        """后台监控循环，持续采样并输出磁场状态。"""
         self.is_running = True
         while self.is_running:
             value = self.read_value()
-            print(value)
+            status = "检测到磁场" if value > self.threshold else "无磁场"
+            print("ADC: {} | 状态: {}".format(value, status))
             self.handle_magnetic_field(value)
-            utime.sleep_ms(500) 
+            utime.sleep_ms(500)
 
     def start(self):
+        """启动后台采样线程。"""
         self.open()
         _thread.start_new_thread(self.monitor, ())
 
     def stop(self):
+        """停止后台采样线程。"""
         self.is_running = False
+
+
 if __name__ == '__main__':
     magnetic_reed_switch = MagneticReedSwitch(
         led_pin=Pin.GPIO31,
@@ -89,7 +110,74 @@ if __name__ == '__main__':
     )
     magnetic_reed_switch.start()
 
+    # 主线程保持运行，等待后台监控
     while True:
         utime.sleep_ms(1000)
+```
+
+### GPIO 模式（数字量检测开关状态）
+
+```python
+from machine import Pin
+import utime
+
+
+class ReedSwitch(object):
+    """磁簧开关传感器类（GPIO 模式），通过数字量检测磁场状态变化。
+
+    应用场景：门窗防盗报警、液位浮子开关、设备到位检测等。
+    常见接线为上拉输入，磁铁靠近时输出低电平（触发）。
+    """
+
+    def __init__(self, pin=Pin.GPIO31, trigger_level=0, pull=Pin.PULL_PU):
+        """初始化磁簧开关传感器实例（GPIO 模式）。
+
+        Args:
+            pin: GPIO 引脚号，默认 GPIO31
+            trigger_level: 触发电平，0 = 低电平触发，1 = 高电平触发，默认 0
+            pull: 上下拉配置，默认上拉 (Pin.PULL_PU)
+        """
+        self.gpio = Pin(pin, Pin.IN, pull)
+        self.trigger_level = trigger_level
+        self.last_state = self.gpio.read()
+
+    def read_state(self):
+        """读取当前 GPIO 电平状态。"""
+        return self.gpio.read()
+
+    def is_triggered(self):
+        """判断当前是否处于触发状态。"""
+        return self.read_state() == self.trigger_level
+
+    def check_state_change(self):
+        """检测状态是否发生变化。
+
+        实际应用场景：门磁防盗——开门触发报警，关门恢复正常。
+        """
+        current = self.read_state()
+        changed = current != self.last_state
+        self.last_state = current
+        return changed, current
+
+    def monitor(self, interval_sec=1):
+        """轮询监控循环，检测并输出磁场状态变化。"""
+        while True:
+            changed, state = self.check_state_change()
+
+            if changed:
+                if state == self.trigger_level:
+                    print("[ReedSwitch] 触发：检测到磁场变化")
+                else:
+                    print("[ReedSwitch] 释放：磁场恢复正常")
+            else:
+                print("[ReedSwitch] 稳定：状态未变化")
+
+            utime.sleep(interval_sec)
+
+
+if __name__ == "__main__":
+    # 默认上拉输入，低电平触发
+    sensor = ReedSwitch(pin=Pin.GPIO31, trigger_level=0, pull=Pin.PULL_PU)
+    sensor.monitor(interval_sec=1)
 ```
 
