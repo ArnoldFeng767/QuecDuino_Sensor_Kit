@@ -34,34 +34,60 @@ According to the instructions provided in the table and pictures, connect the pe
 from machine import Pin
 import utime
 
-class LED():
-    def __init__(self,pin):
-        self.pin=Pin(pin,Pin.OUT,Pin.PULL_DISABLE,0)
-    def write(self,value):
+
+class LED(object):
+    """LED control class, wraps GPIO pin for basic LED operations.
+
+    Args:
+        pin: GPIO pin number, e.g. Pin.GPIO31
+    """
+
+    def __init__(self, pin):
+        # Initialize GPIO as output mode, disable pull-up/down resistor, default low (LED off)
+        self.pin = Pin(pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+
+    def write(self, value):
+        """Set the LED pin level.
+
+        Args:
+            value: 1 for high (on), 0 for low (off)
+        """
         self.pin.write(value)
-        
+
     def read(self):
+        """Read the current LED pin level.
+
+        Returns:
+            int: 1 or 0
+        """
         return self.pin.read()
-    
-    def open_LED(self):
+
+    def on(self):
+        """Turn on the LED (output high)."""
         self.pin.write(1)
-        
-    def close_LED(self):
+
+    def off(self):
+        """Turn off the LED (output low)."""
         self.pin.write(0)
 
-    def test_led(self):
+    def blink(self, interval=1):
+        """Blink the LED at the specified interval.
+
+        Args:
+            interval: on/off toggle interval in seconds, default 1
+        """
         while True:
-            self.open_LED()
-            utime.sleep(1)
-            self.close_LED()
-            utime.sleep(1)
+            self.on()
+            utime.sleep(interval)
+            self.off()
+            utime.sleep(interval)
 
 
-if __name__=='__main__':
-    laser=LED(Pin.GPIO31)
-    laser.test_led()
-        
-        
+if __name__ == '__main__':
+    # Create LED instance on GPIO31
+    led = LED(Pin.GPIO31)
+    # Run blink test (toggle every 1 second)
+    led.blink()
 ```
 
  

@@ -39,7 +39,7 @@ import utime
 from machine import ExtInt, Pin
 
 
-class KeyInterrupt():
+class KeyInterrupt(object):
 
     def __init__(self, pin, mode=ExtInt.IRQ_FALLING, pull=Pin.PULL_PU, filter_time=50, user_callback=None):
         self.pin = pin
@@ -48,6 +48,7 @@ class KeyInterrupt():
         self.filter_time = filter_time
         self.user_callback = user_callback
         self.press_count = 0
+        # Register external interrupt, triggered on key press
         self._extint = ExtInt(self.pin, self.mode, self.pull, self._irq_handler, self.filter_time)
 
     def _irq_handler(self, args):
@@ -71,7 +72,7 @@ def on_key_pressed(args, count):
 
 
 if __name__ == "__main__":
-    # Modify according to the actual pins of your development board, for example, Pin.GPIO31
+    # Modify according to the actual pins of your development board, e.g. Pin.GPIO31
     key = KeyInterrupt(
         pin=Pin.GPIO31,
         mode=ExtInt.IRQ_FALLING,
@@ -82,6 +83,7 @@ if __name__ == "__main__":
     key.enable()
 
     print("Key interrupt is enabled. Press the key to trigger interrupt.")
+    # Keep main thread alive, waiting for interrupt
     while True:
         utime.sleep_ms(500)
 ```
