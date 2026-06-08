@@ -31,40 +31,48 @@ import utime
 
 
 class TiltSwitch(object):
-	"""Tilt switch class, suitable for posture detection and linkage alerts."""
+    """倾斜开关传感器类，检测设备姿态并联动输出。
 
-	def __init__(self, sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1):
-		# Practical applications: Tipping alarm, equipment posture detection, transportation vibration/deflection indication.
-		self.sensor = Pin(sensor_pin, Pin.IN, Pin.PULL_PD)
-		self.output = Pin(output_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
-		self.trigger_level = trigger_level
+    应用场景：倾覆报警、设备姿态检测、运输振动/偏转指示等。
+    """
 
-	def read_state(self):
-		return self.sensor.read()
+    def __init__(self, sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1):
+        """初始化倾斜开关传感器实例。
 
-	def is_tilted(self):
-		return self.read_state() == self.trigger_level
+        Args:
+            sensor_pin: 传感器输入 GPIO 引脚号，默认 GPIO31
+            output_pin: 联动输出 GPIO 引脚号，默认 GPIO30
+            trigger_level: 触发电平，默认 1（高电平触发）
+        """
+        self.sensor = Pin(sensor_pin, Pin.IN, Pin.PULL_PD)
+        self.output = Pin(output_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self.trigger_level = trigger_level
 
-	def update(self):
-		if self.is_tilted():
-			self.output.write(1)
-			print("Tilt detected")
-		else:
-			self.output.write(0)
-			print("Normal position")
+    def read_state(self):
+        """读取传感器当前电平状态。"""
+        return self.sensor.read()
 
-	def monitor(self, interval_sec=1):
-		while True:
-			self.update()
-			utime.sleep(1)
+    def is_tilted(self):
+        """判断当前是否处于倾斜状态。"""
+        return self.read_state() == self.trigger_level
 
-def main():
-	tilt_switch = TiltSwitch(sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1)
-	tilt_switch.monitor(1)
+    def update(self):
+        """根据倾斜状态更新联动输出。"""
+        if self.is_tilted():
+            self.output.write(1)
+            print("检测到倾斜")
+        else:
+            self.output.write(0)
+            print("位置正常")
+
+    def monitor(self, interval_sec=1):
+        """轮询监控循环，检测倾斜状态并联动输出。"""
+        while True:
+            self.update()
+            utime.sleep(interval_sec)
 
 
 if __name__ == '__main__':
-	main()
+    tilt_switch = TiltSwitch(sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1)
+    tilt_switch.monitor(interval_sec=1)
 ```
-
- 
