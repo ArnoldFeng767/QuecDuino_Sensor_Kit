@@ -23,25 +23,39 @@ Connect the peripheral to the development board one-to-one according to the tabl
 ## 3.Driver Code
 
 ```python
-rom machine import Pin
+from machine import Pin
 import utime
 
 
-class InclinationSwitch:
-    """Tilt switch sensor packaging class."""
+class InclinationSwitch(object):
+    """Tilt switch sensor class, detects tilt state via GPIO and controls LED indicator.
 
-    def __init__(self, pin=Pin.GPIO31, trigger_level=0, pull=Pin.PULL_PU):
+    Application scenarios: tipping alarm, equipment posture detection, transportation vibration indication, etc.
+    """
+
+    def __init__(self, pin=Pin.GPIO31, led_pin=Pin.GPIO32, trigger_level=0, pull=Pin.PULL_PU):
+        """Initialize tilt switch sensor instance.
+
+        Args:
+            pin: Sensor input GPIO pin number, defaults to GPIO31
+            led_pin: LED indicator GPIO pin number, defaults to GPIO32
+            trigger_level: Trigger level, defaults to 0 (low level trigger)
+            pull: Pull-up/down config, defaults to pull-up (Pin.PULL_PU)
+        """
         self.gpio = Pin(pin, Pin.IN, pull)
-        self.led = Pin(Pin.GPIO32, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self.led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
         self.trigger_level = trigger_level
 
     def read_state(self):
+        """Read current sensor level state."""
         return self.gpio.read()
 
     def is_tilted(self):
+        """Check if currently in tilted state."""
         return self.read_state() == self.trigger_level
 
-    def monitor(self):
+    def monitor(self, interval_sec=1):
+        """Polling monitor loop, detects tilt state and controls LED."""
         while True:
             if self.is_tilted():
                 self.led.write(1)
@@ -49,13 +63,10 @@ class InclinationSwitch:
             else:
                 self.led.write(0)
                 print("Level state")
-            utime.sleep(1)
+            utime.sleep(interval_sec)
 
-def main():
-    tilt_switch = InclinationSwitch(pin=Pin.GPIO31, trigger_level=0, pull=Pin.PULL_PU)
-    tilt_switch.monitor()
 
 if __name__ == '__main__':
-    main()
+    tilt_switch = InclinationSwitch(pin=Pin.GPIO31, led_pin=Pin.GPIO32, trigger_level=0, pull=Pin.PULL_PU)
+    tilt_switch.monitor(interval_sec=1)
 ```
-
