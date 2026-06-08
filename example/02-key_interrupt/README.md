@@ -40,6 +40,7 @@ from machine import ExtInt, Pin
 
 
 class KeyInterrupt(object):
+    """按键中断类，基于外部中断实现按键检测与计数。"""
 
     def __init__(self, pin, mode=ExtInt.IRQ_FALLING, pull=Pin.PULL_PU, filter_time=50, user_callback=None):
         self.pin = pin
@@ -52,22 +53,27 @@ class KeyInterrupt(object):
         self._extint = ExtInt(self.pin, self.mode, self.pull, self._irq_handler, self.filter_time)
 
     def _irq_handler(self, args):
+        """中断服务函数，在中断上下文中执行，不宜做耗时操作。"""
         self.press_count += 1
         print("[KeyInterrupt] key pressed, count = {}".format(self.press_count))
         if self.user_callback:
             self.user_callback(args, self.press_count)
 
     def enable(self):
+        """使能按键中断。"""
         self._extint.enable()
 
     def disable(self):
+        """禁用按键中断。"""
         self._extint.disable()
 
     def reset_count(self):
+        """重置按键计数归零。"""
         self.press_count = 0
 
 
 def on_key_pressed(args, count):
+    """示例回调函数，按键按下时打印中断参数和计数。"""
     print("[UserCallback] args = {}, count = {}".format(args, count))
 
 
