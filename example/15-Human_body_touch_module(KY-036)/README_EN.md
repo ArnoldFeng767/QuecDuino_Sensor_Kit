@@ -24,21 +24,51 @@ Connect the peripheral to the development board one-to-one according to the tabl
 
 ## 3.Driver Code
 
-```` python
-class TouchSensor:
-    """Human touch sensor encapsulation class."""
-    
+```python
+from machine import Pin
+import utime
+
+
+class TouchSensor(object):
+    """Human touch sensor class, detects touch state via GPIO.
+
+    Application scenarios: touch switches, human-computer interaction,
+    proximity detection, etc.
+    """
+
     def __init__(self, pin=Pin.GPIO31, trigger_level=1, pull=Pin.PULL_PD):
+        """Initialize touch sensor instance.
+
+        Args:
+            pin: Sensor input GPIO pin number, default GPIO31
+            trigger_level: Trigger level, default 1 (high level trigger)
+            pull: Pull-up/down configuration, default pull-down (Pin.PULL_PD)
+        """
         self.gpio = Pin(pin, Pin.IN, pull)
         self.trigger_level = trigger_level
 
     def read_state(self):
+        """Read the current level state of the sensor.
+
+        Returns:
+            int: 0 or 1
+        """
         return self.gpio.read()
 
     def is_touched(self):
+        """Check whether touch is currently detected.
+
+        Returns:
+            bool: True means touch detected
+        """
         return self.read_state() == self.trigger_level
 
     def monitor(self, interval_sec=1):
+        """Polling monitor loop, detect touch state.
+
+        Args:
+            interval_sec: Polling interval in seconds, default 1 second
+        """
         while True:
             if self.is_touched():
                 print("Touch detected")
@@ -46,11 +76,9 @@ class TouchSensor:
                 print("No touch detected")
             utime.sleep(interval_sec)
 
-def main():
-    touch_sensor = TouchSensor(pin=Pin.GPIO31, trigger_level=1, pull=Pin.PULL_PD)
-    touch_sensor.monitor(interval_sec=1)
 
 if __name__ == '__main__':
-    main()
-````
+    touch_sensor = TouchSensor(pin=Pin.GPIO31, trigger_level=1, pull=Pin.PULL_PD)
+    touch_sensor.monitor(interval_sec=1)
+```
 

@@ -31,26 +31,63 @@ import _thread
 import utime
 
 
-class VibrationSensor:
-    """Vibration sensor encapsulation class."""
+class VibrationSensor(object):
+    """Vibration sensor class, acquires vibration intensity via ADC and
+    triggers threshold alerts.
+
+    Application scenarios: cabinet tamper detection, device drop detection,
+    door/window vibration alarm, etc.
+    Higher ADC values indicate stronger vibration/impact.
+    """
 
     def __init__(self, adc_channel=None, alert_threshold=1500):
+        """Initialize vibration sensor instance.
+
+        Args:
+            adc_channel: ADC channel, defaults to ADC1
+            alert_threshold: Vibration alert threshold, triggers alarm when
+                ADC value exceeds this value, default 1500
+        """
         self.adc = ADC()
         self.adc_channel = self.adc.ADC1 if adc_channel is None else adc_channel
         self.alert_threshold = alert_threshold
         self.is_running = False
 
     def open(self):
+        """Open the ADC channel."""
         self.adc.open()
 
     def read_value(self):
-        # The larger the value, the stronger the impact/vibration is usually indicated.
+        """Read the current vibration intensity ADC value.
+
+        Note: Higher values generally indicate stronger vibration/impact.
+
+        Returns:
+            int: ADC sample value
+        """
         return self.adc.read(self.adc_channel)
 
     def check_alert(self, value):
-        # Actual application: cabinet tamper detection, device drop detection, door/window vibration alarm.
+        """Check whether vibration exceeds the alert threshold.
+
+        Application scenarios: cabinet tamper detection, device drop detection,
+        door/window vibration alarm, etc.
+
+        Args:
+            value: Current ADC sample value
+
+        Returns:
+            bool: True means alert triggered
+        """
         return value >= self.alert_threshold
-    def monitor(self):
+
+    def monitor(self, interval_ms=200):
+        """Background monitoring loop, continuously samples and outputs
+        vibration state.
+
+        Args:
+            interval_ms: Sampling interval in milliseconds, default 200ms
+        """
         self.is_running = True
         while self.is_running:
             value = self.read_value()
@@ -58,13 +95,19 @@ class VibrationSensor:
                 print("Vibration alert, value = {}".format(value))
             else:
                 print("Vibration value = {}".format(value))
-            utime.sleep_ms(200)
+            utime.sleep_ms(interval_ms)
 
-    def start(self):
+    def start(self, interval_ms=200):
+        """Start background monitoring thread.
+
+        Args:
+            interval_ms: Sampling interval in milliseconds, default 200ms
+        """
         self.open()
-        _thread.start_new_thread(self.monitor, ())
+        _thread.start_new_thread(self.monitor, (interval_ms,))
 
     def stop(self):
+        """Stop background monitoring thread."""
         self.is_running = False
 
 
@@ -72,6 +115,7 @@ if __name__ == '__main__':
     sensor = VibrationSensor(alert_threshold=1500)
     sensor.start()
 
+    # Keep main thread running, wait for background monitoring
     while True:
         utime.sleep_ms(1000)
 ```

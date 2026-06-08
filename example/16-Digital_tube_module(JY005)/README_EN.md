@@ -30,35 +30,52 @@ Connect the peripheral to the development board one-to-one according to the tabl
 from machine import Pin
 import utime
 
-class DigitalTubeDisplay:
-    """单个 8 段数码管显示类。"""
 
+class DigitalTubeDisplay(object):
+    """8-segment digital tube display class, controls segment display of
+    digits 0-9 via 8 GPIO pins.
+
+    Segment encoding (common anode, 0 = on, 1 = off):
+        Index order: [a, b, c, d, e, f, g, dp]
+
+    Pin mapping:
+        GPIO32 -> a, GPIO31 -> b, GPIO30 -> c, GPIO33 -> d,
+        GPIO2  -> e, GPIO3  -> f, GPIO14 -> g, GPIO15 -> dp
+    """
+
+    # Segment code table for digits 0-9 (common anode inverse logic)
     NUM_TABLE = [
-        [0, 0, 0, 0, 1, 0, 0, 0],
-        [0, 1, 0, 1, 1, 0, 1, 1],
-        [1, 0, 0, 0, 0, 0, 0, 1],
-        [0, 0, 0, 0, 0, 0, 1, 1],
-        [0, 1, 0, 1, 0, 0, 1, 0],
-        [0, 0, 1, 0, 0, 0, 1, 0],
-        [0, 0, 1, 0, 0, 0, 0, 0],
-        [0, 0, 0, 1, 1, 0, 1, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0],  # 0
+        [0, 1, 0, 1, 1, 0, 1, 1],  # 1
+        [1, 0, 0, 0, 0, 0, 0, 1],  # 2
+        [0, 0, 0, 0, 0, 0, 1, 1],  # 3
+        [0, 1, 0, 1, 0, 0, 1, 0],  # 4
+        [0, 0, 1, 0, 0, 0, 1, 0],  # 5
+        [0, 0, 1, 0, 0, 0, 0, 0],  # 6
+        [0, 0, 0, 1, 1, 0, 1, 1],  # 7
+        [0, 0, 0, 0, 0, 0, 0, 0],  # 8
+        [0, 0, 0, 0, 0, 0, 1, 0],  # 9
     ]
 
     def __init__(self):
+        """Initialize digital tube display instance, configure 8 segment pins as output mode."""
         self.segments = [
-            Pin(Pin.GPIO32, Pin.OUT, Pin.PULL_DISABLE, 1),
-            Pin(Pin.GPIO31, Pin.OUT, Pin.PULL_DISABLE, 1),
-            Pin(Pin.GPIO30, Pin.OUT, Pin.PULL_DISABLE, 1),
-            Pin(Pin.GPIO33, Pin.OUT, Pin.PULL_DISABLE, 1),
-            Pin(Pin.GPIO2, Pin.OUT, Pin.PULL_DISABLE, 1),
-            Pin(Pin.GPIO3, Pin.OUT, Pin.PULL_DISABLE, 1),
-            Pin(Pin.GPIO14, Pin.OUT, Pin.PULL_DISABLE, 1),
-            Pin(Pin.GPIO15, Pin.OUT, Pin.PULL_DISABLE, 1),
+            Pin(Pin.GPIO32, Pin.OUT, Pin.PULL_DISABLE, 1),  # a
+            Pin(Pin.GPIO31, Pin.OUT, Pin.PULL_DISABLE, 1),  # b
+            Pin(Pin.GPIO30, Pin.OUT, Pin.PULL_DISABLE, 1),  # c
+            Pin(Pin.GPIO33, Pin.OUT, Pin.PULL_DISABLE, 1),  # d
+            Pin(Pin.GPIO2,  Pin.OUT, Pin.PULL_DISABLE, 1),  # e
+            Pin(Pin.GPIO3,  Pin.OUT, Pin.PULL_DISABLE, 1),  # f
+            Pin(Pin.GPIO14, Pin.OUT, Pin.PULL_DISABLE, 1),  # g
+            Pin(Pin.GPIO15, Pin.OUT, Pin.PULL_DISABLE, 1),  # dp
         ]
 
     def display_num(self, number):
+        """Display the specified digit (0-9).
+
+        Args:
+            number: The digit to display, range 0-9
+        """
         if number < 0 or number > 9:
             return
 
@@ -67,10 +84,16 @@ class DigitalTubeDisplay:
             segment.write(value)
 
     def clear(self):
+        """Clear the display (all segments off)."""
         for segment in self.segments:
             segment.write(1)
 
     def demo(self, interval_sec=1):
+        """Demo loop, display digits 0-9 sequentially.
+
+        Args:
+            interval_sec: Display duration per digit in seconds, default 1 second
+        """
         while True:
             for number in range(10):
                 self.display_num(number)
@@ -80,6 +103,5 @@ class DigitalTubeDisplay:
 if __name__ == '__main__':
     display = DigitalTubeDisplay()
     display.demo(interval_sec=1)
-
 ```
 
