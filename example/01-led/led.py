@@ -19,7 +19,16 @@ class LED(object):
     """
 
     def __init__(self, pin):
-        # 初始化 GPIO 为输出模式，禁用上下拉电阻，默认低电平（LED 熄灭）
+        """初始化 LED 实例，配置 GPIO 为输出模式。
+
+        Args:
+            pin: GPIO 引脚号，例如 Pin.GPIO31
+
+        引脚配置说明：
+            - Pin.OUT: 输出模式
+            - Pin.PULL_DISABLE: 禁用上下拉电阻
+            - 初始值 0: 默认低电平（LED 熄灭）
+        """
         self.pin = Pin(pin, Pin.OUT, Pin.PULL_DISABLE, 0)
 
     def write(self, value):

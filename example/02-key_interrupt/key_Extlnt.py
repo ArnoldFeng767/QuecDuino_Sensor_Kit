@@ -23,6 +23,15 @@ class KeyInterrupt(object):
     """
 
     def __init__(self, pin, mode=ExtInt.IRQ_FALLING, pull=Pin.PULL_PU, filter_time=50, user_callback=None):
+        """初始化按键中断实例，注册外部中断。
+
+        Args:
+            pin: GPIO 引脚号，例如 Pin.GPIO31
+            mode: 中断触发模式，默认下降沿触发 (ExtInt.IRQ_FALLING)
+            pull: 上下拉配置，默认上拉 (Pin.PULL_PU)
+            filter_time: 消抖时间，单位毫秒，默认 50ms
+            user_callback: 用户自定义回调函数，签名为 callback(args, count)
+        """
         self.pin = pin
         self.mode = mode
         self.pull = pull
