@@ -27,7 +27,7 @@ Connect the peripheral to the development board one-to-one according to the tabl
 
 ## 3.Driver Code
 
-Analog Signal
+### Analog Signal (ADC Mode)
 
 ```python
 from misc import ADC
@@ -35,42 +35,138 @@ from machine import Pin
 import _thread
 import utime
 
-def fun():
+
+class FlameSensor(object):
+    """Flame sensor class (ADC mode), reads flame intensity via analog signal with tiered alarm.
+
+    Tiered logic:
+        - ADC < 100: No flame
+        - 100 <= ADC < 500: Fire hazard, LED solid on
+        - ADC >= 500: Fire alarm, LED blinking
+    """
+
+    def __init__(self, adc_channel=None, led_pin=Pin.GPIO31):
+        """Initialize flame sensor instance (ADC mode).
+
+        Args:
+            adc_channel: ADC channel, defaults to ADC0
+            led_pin: LED alarm indicator GPIO pin number, defaults to GPIO31
+        """
+        self.adc = ADC()
+        self.adc_channel = self.adc.ADC0 if adc_channel is None else adc_channel
+        self.led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self.is_running = False
+
+    def open(self):
+        """Open ADC channel."""
+        self.adc.open()
+
+    def read_value(self):
+        """Read current flame intensity ADC value."""
+        return self.adc.read(self.adc_channel)
+
+    def led_blink(self):
+        """LED fast blink, used for fire alarm indication."""
+        self.led.write(1)
+        utime.sleep(0.5)
+        self.led.write(0)
+        utime.sleep(0.5)
+
+    def monitor(self):
+        """Background monitoring loop, tiered response based on flame intensity."""
+        self.is_running = True
+        while self.is_running:
+            value = self.read_value()
+            if value < 100:
+                self.led.write(0)
+                print("ADC: {} | Status: Safe".format(value))
+            elif value < 500:
+                self.led.write(1)
+                print("ADC: {} | Status: Fire hazard".format(value))
+            else:
+                self.led_blink()
+                print("ADC: {} | Status: Fire alarm".format(value))
+            utime.sleep(1)
+
+    def start(self):
+        """Start background monitoring thread."""
+        self.open()
+        _thread.start_new_thread(self.monitor, ())
+
+    def stop(self):
+        """Stop background monitoring thread."""
+        self.is_running = False
+
+
+if __name__ == '__main__':
+    flame_sensor = FlameSensor()
+    flame_sensor.start()
+
     while True:
-        num=adc.read(adc.ADC0)
-        utime.sleep(1)
-        print(num)
-
-
-if __name__=='__main__':
-    adc = ADC()
-    adc.open()
-    _thread.start_new_thread(fun,())
+        utime.sleep_ms(1000)
 ```
 
-
-
-Digital Signal
+### Digital Signal (GPIO Mode)
 
 ```python
 from machine import Pin
 import utime
 
-#Configure GPIO as input with pull-down
-gpio = Pin(Pin.GPIO31, Pin.IN, Pin.PULL_PD)
-gpio1=Pin(Pin.GPIO30,Pin.OUT,Pin.PULL_DISABLE,0)
-def main():
-    # When the sensor detects a flame, it outputs a high level (1).
-    while True:
-        if gpio.read() == 0:
-            gpio1.write(0)
-        else:
-            gpio1.write(1)
-            print("Flames were detected.")
-        utime.sleep_ms(100)
+
+class FlameDigitalSensor(object):
+    """Flame sensor class (GPIO mode), detects flame via digital signal with output linkage.
+
+    Application scenarios: fire alarm, fire source detection, safety monitoring, etc.
+    """
+
+    def __init__(self, sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1):
+        """Initialize flame sensor instance (GPIO mode).
+
+        Args:
+            sensor_pin: Sensor input GPIO pin number, defaults to GPIO31
+            output_pin: Linkage output GPIO pin number, defaults to GPIO30
+            trigger_level: Trigger level, defaults to 1 (high level trigger)
+        """
+        self.sensor = Pin(sensor_pin, Pin.IN, Pin.PULL_PD)
+        self.output = Pin(output_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self.trigger_level = trigger_level
+        self.last_state = self.sensor.read()
+
+    def read_state(self):
+        """Read current sensor level state."""
+        return self.sensor.read()
+
+    def is_flame_detected(self):
+        """Check if flame is currently detected."""
+        return self.read_state() == self.trigger_level
+
+    def set_output(self, active):
+        """Control linkage output pin, can drive LED, buzzer, etc."""
+        self.output.write(1 if active else 0)
+
+    def update(self):
+        """Update linkage output based on sensor state and return state change info."""
+        state = self.read_state()
+        detected = state == self.trigger_level
+        self.set_output(detected)
+
+        if detected:
+            print("Flame detected")
+
+        changed = state != self.last_state
+        self.last_state = state
+        return changed, detected
+
+    def monitor(self, interval_ms=100):
+        """Polling monitor loop, detects flame state and controls output linkage."""
+        while True:
+            self.update()
+            utime.sleep_ms(interval_ms)
+
+
 if __name__ == "__main__":
-    main()
-        
+    flame_sensor = FlameDigitalSensor(sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1)
+    flame_sensor.monitor()
 ```
 
 ``    
