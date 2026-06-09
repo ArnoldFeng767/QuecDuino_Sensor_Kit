@@ -24,115 +24,115 @@ Connect the peripheral to the development board one-to-one according to the tabl
 ## 3.Driver Code
 
 ```python
-from machine import I2C 
-
+from machine import I2C
 from utime import sleep_ms
 
- 
 
-class aht20(object):
+class AHT20(object):
+    """AHT20 temperature and humidity sensor class, reads temperature and
+    humidity data via I2C.
 
-  def __init__(self):
+    Application scenarios: environmental monitoring, smart home climate
+    control, warehouse temperature and humidity management, etc.
+    """
 
-     self.i2c = I2C(I2C.I2C0,I2C.STANDARD_MODE)
+    def __init__(self):
+        """Initialize AHT20 sensor instance, configure I2C communication."""
+        self.i2c = I2C(I2C.I2C0, I2C.STANDARD_MODE)
+        self.slave_addr = 0x38  # AHT20 I2C slave address
+        self.RESET_CMD = b'\xBA'       # Reset command
+        self.INIT_CMD = b'\xE1'       # Initialize command
+        self.MEASURE_CMD = b'\xAC\x33\x00'  # Measurement command
 
-     self.slave_addr = 0x38# AHT20 slave address
+    def reset(self):
+        """Perform a soft reset on the sensor."""
+        self.i2c.write(self.slave_addr, b'\x00', 0, self.RESET_CMD, len(self.RESET_CMD))
+        sleep_ms(20)  # Wait for reset to complete
 
-     self.RESET_CMD = b'\xBA'# reset command
+    def init(self):
+        """Initialize the sensor, configure calibration parameters."""
+        self.i2c.write(self.slave_addr, b'\x00', 0, self.INIT_CMD, len(self.INIT_CMD))
 
-     self.INIT_CMD = b'\xE1'# initialize command
+    def read(self):
+        """Read temperature and humidity data.
 
-     self.MEASURE_CMD = b'\xAC\x33\x00'# measure command
+        Sends measurement command, waits at least 80ms, reads 6 bytes
+        and converts:
+            Humidity = RH_reg / 2^20 * 100 (%)
+            Temperature = temp_reg / 2^20 * 200 - 50 (C)
 
- 
+        Returns:
+            tuple or (): (humidity, temperature), empty tuple when busy
+        """
+        # Send measurement command
+        self.i2c.write(self.slave_addr, b'\x00', 0, self.MEASURE_CMD, len(self.MEASURE_CMD))
 
- 
+        # Wait for data ready (at least 80ms)
+        sleep_ms(80)
+        r_data = bytearray([0x00] * 6)
+        self.i2c.read(self.slave_addr, b'\x00', 0, r_data, 6, 80)
 
-  def reset(self):
+        busy = 0
+        if not busy:
+            # Humidity data: [1] 8 bits + [2] 8 bits + [3] high 4 bits = 20 bits
+            RH_reg_data = (r_data[1] << 12) | (r_data[2] << 4) | (r_data[3] >> 4)
+            RH = RH_reg_data / (1 << 20) * 100
 
-     self.i2c.write(self.slave_addr,b'\x00',0,self.RESET_CMD,len(self.RESET_CMD))
+            # Temperature data: [3] low 4 bits + [4] 8 bits + [5] 8 bits = 20 bits
+            temp_reg_data = ((r_data[3] & 0x0F) << 16) | (r_data[4] << 8) | r_data[5]
+            temp = temp_reg_data / (1 << 20) * 200 - 50
 
-     sleep_ms(20)# wait 20ms
+            return RH, temp
+        else:
+            return ()
 
- 
+    def check_comfort(self, temp, rh):
+        """Judge comfort level based on temperature and humidity.
 
-  def init(self):
+        Application scenarios: smart home climate control, office environment
+        monitoring, warehouse environment management, etc.
 
-     self.i2c.write(self.slave_addr,b'\x00',0,self.INIT_CMD,len(self.INIT_CMD))
+        Args:
+            temp: Temperature in C
+            rh: Humidity in %
 
- 
+        Returns:
+            str: Comfort level description
+        """
+        if temp < 18:
+            return "Cold"
+        elif temp > 28:
+            return "Hot"
+        elif rh < 30:
+            return "Dry"
+        elif rh > 70:
+            return "Humid"
+        else:
+            return "Comfortable"
 
-  def read(self):
+    def monitor(self, interval_ms=1000):
+        """Continuously monitor temperature and humidity with comfort output.
 
-     # Send measurement cmd to trigger data acquirement.
+        Args:
+            interval_ms: Sampling interval in milliseconds, default 1000ms
+        """
+        self.init()
+        sleep_ms(1000)
+        while True:
+            res = self.read()
+            if res:
+                rh, temp = res
+                comfort = self.check_comfort(temp, rh)
+                print("Temp: %.1fC | Humidity: %.1f%% | Status: %s" % (temp, rh, comfort))
+            else:
+                print("Read failed")
+            sleep_ms(interval_ms)
 
-     self.i2c.write(self.slave_addr,b'\x00',0,self.MEASURE_CMD,len(self.MEASURE_CMD))
-
- 
-
-     #read data
-
-     #wait for data ready (at least 80ms)
-
-     sleep_ms(80)
-
-     r_data = bytearray([0x00]*6)
-
-     self.i2c.read(self.slave_addr,b'\x00',0,r_data,6,80)
-
-     busy = 0#r_data[0]>>7
-
-     if not busy:
-
-       RH_reg_data = (r_data[1]<<12) | (r_data[2]<<4) | (r_data[3]>>4)
-
-       RH = RH_reg_data\(1<<20) * 100
-
- 
-
-       temp_reg_data = ((r_data[3]&0x0F)<<16) | (r_data[4]<<8) | r_data[5]
-
-       temp = temp_reg_data\(1<<20) * 200 - 50
-
- 
-
- 
-
-       return RH,temp
-
-     else:
-
-       return ()
-
-     
 
 if __name__ == '__main__':
-
-  aht20_obj = aht20()
-
-  aht20_obj.init()
-
-  sleep_ms(1000)
-
-  while True:
-
-     res = aht20_obj.read()
-
-     if res:
-
-       print("RH: %.2f%%" % res[0])
-
-       print("Temp: %.2f" % res[1])
-
-       print("------------")
-
-     else:
-
-       print("read error")
-
-     sleep_ms(1000)
+    sensor = AHT20()
+    sensor.monitor(interval_ms=1000)
 ```
 
 
 
- 

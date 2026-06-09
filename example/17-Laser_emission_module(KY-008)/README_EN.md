@@ -22,36 +22,60 @@ Connect the peripheral to the development board one-to-one according to the tabl
 from machine import Pin
 import utime
 
-class LaserEmitter:
-    """Laser emission module packaging class."""
+
+class LaserEmitter(object):
+    """Laser emitter control class, controls laser on/off and blinking via GPIO.
+
+    Adapts to different trigger modes via the active_level parameter.
+    Application scenarios: laser indication, alignment assistance,
+    security warning, etc.
+    """
 
     def __init__(self, pin=Pin.GPIO31, active_level=1):
+        """Initialize laser emitter instance.
+
+        Args:
+            pin: GPIO pin number, default GPIO31
+            active_level: Trigger level, 1 = high level trigger,
+                0 = low level trigger, default 1
+        """
         self.active_level = active_level
         self.inactive_level = 0 if active_level else 1
         self.gpio = Pin(pin, Pin.OUT, Pin.PULL_DISABLE, self.inactive_level)
 
     def on(self):
+        """Turn on the laser."""
         self.gpio.write(self.active_level)
-        print("laser on")
+        print("Laser on")
 
     def off(self):
+        """Turn off the laser."""
         self.gpio.write(self.inactive_level)
-        print("laser off")
+        print("Laser off")
 
-    def blink(self,):
+    def blink(self, interval=2):
+        """Blink the laser once (on -> off).
+
+        Args:
+            interval: On/off interval in seconds, default 2 seconds
+        """
         self.on()
-        utime.sleep(2)
+        utime.sleep(interval)
         self.off()
-        utime.sleep(2)
+        utime.sleep(interval)
 
-    def demo(self):
+    def demo(self, interval=2):
+        """Demo loop, continuous blinking.
+
+        Args:
+            interval: Blink interval in seconds, default 2 seconds
+        """
         while True:
-            self.blink()
+            self.blink(interval)
 
 
 if __name__ == '__main__':
     laser = LaserEmitter(pin=Pin.GPIO31, active_level=1)
-    laser.demo()
-        
+    laser.demo(interval=2)
 ```
 

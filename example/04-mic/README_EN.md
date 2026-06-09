@@ -27,10 +27,19 @@ import _thread
 import utime
 
 
-class Mic:
-    """Microphone sensor packaging class."""
+class Mic(object):
+    """Microphone sensor class, reads sound intensity via ADC, lights LED when threshold is exceeded."""
 
     def __init__(self, adc_channel=None, led_pin=Pin.GPIO31, threshold=200, sample_ms=500, led_on_sec=2):
+        """Initialize microphone instance.
+
+        Args:
+            adc_channel: ADC channel, defaults to ADC1
+            led_pin: LED indicator GPIO pin number, defaults to GPIO31
+            threshold: Sound intensity threshold to trigger LED, defaults to 200
+            sample_ms: Sampling interval in milliseconds, defaults to 500ms
+            led_on_sec: LED on duration in seconds, defaults to 2s
+        """
         self.threshold = threshold
         self.sample_ms = sample_ms
         self.led_on_sec = led_on_sec
@@ -40,18 +49,25 @@ class Mic:
         self.is_running = False
 
     def open(self):
+        """Open ADC channel."""
         self.adc.open()
 
     def read_value(self):
+        """Read current sound intensity ADC value."""
         return self.adc.read(self.adc_channel)
 
     def handle_sound(self, value):
+        """Handle sound detection, light LED when threshold is exceeded.
+
+        Note: Blocks the current thread for led_on_sec seconds while LED is on.
+        """
         if value > self.threshold:
             self.led.write(1)
             utime.sleep(self.led_on_sec)
             self.led.write(0)
 
     def monitor(self):
+        """Background monitoring loop, continuously samples and handles sound events."""
         self.is_running = True
         while self.is_running:
             value = self.read_value()
@@ -60,11 +76,14 @@ class Mic:
             utime.sleep_ms(self.sample_ms)
 
     def start(self):
+        """Start background sampling thread."""
         self.open()
         _thread.start_new_thread(self.monitor, ())
 
     def stop(self):
+        """Stop background sampling thread."""
         self.is_running = False
+
 
 if __name__ == '__main__':
     mic = Mic(
@@ -75,9 +94,9 @@ if __name__ == '__main__':
     )
     mic.start()
 
+    # Keep main thread alive
     while True:
         utime.sleep_ms(1000)
-
 ```
 
  

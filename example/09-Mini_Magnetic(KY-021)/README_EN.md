@@ -30,8 +30,12 @@ Connect the peripherals to the development board one by one according to the tab
 from machine import Pin
 import utime
 
+
 class MiniMagneticController(object):
-    """Mini magnetic sensor module control class."""
+    """Mini magnetic sensor control class, magnetic field detection + output linkage.
+
+    Application scenarios: door magnet triggers output linkage, driving warning lights, buzzers or relays.
+    """
 
     def __init__(
         self,
@@ -40,7 +44,14 @@ class MiniMagneticController(object):
         trigger_level=0,
         output_active_level=1,
     ):
-        # Typical scenario: After the door magnet is triggered, it increases the output, driving the warning light, buzzer or relay.
+        """Initialize magnetic sensor controller.
+
+        Args:
+            sensor_pin: Sensor input GPIO pin number, defaults to GPIO31
+            output_pin: Linkage output GPIO pin number, defaults to GPIO30
+            trigger_level: Trigger level, 0 = low level trigger, 1 = high level trigger, defaults to 0
+            output_active_level: Output active level, defaults to 1 (high level active)
+        """
         self.sensor = Pin(sensor_pin, Pin.IN, Pin.PULL_PU)
         self.output = Pin(output_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
         self.trigger_level = trigger_level
@@ -48,20 +59,21 @@ class MiniMagneticController(object):
         self.output_inactive_level = 0 if output_active_level else 1
         self.last_state = self.sensor.read()
 
-    # Read magnetic sensor
     def read_sensor(self):
+        """Read current sensor level state."""
         return self.sensor.read()
-    
+
     def is_triggered(self):
+        """Check if currently in triggered state."""
         return self.read_sensor() == self.trigger_level
 
-    # Output linkage control
     def set_output(self, active):
+        """Control linkage output pin level, can drive LED, buzzer, relay, etc."""
         level = self.output_active_level if active else self.output_inactive_level
         self.output.write(level)
 
-    # Update output linkage based on sensor state, and return whether the state has changed and whether it is currently triggered.
     def update(self):
+        """Update linkage output based on sensor state and return state change info."""
         state = self.read_sensor()
         triggered = state == self.trigger_level
         self.set_output(triggered)
@@ -75,19 +87,22 @@ class MiniMagneticController(object):
         self.last_state = state
         return changed, triggered
 
-    def monitor(self):
-        # Practical Applications: Periodic polling and output linkage, commonly used for access control status indication and intrusion detection.
+    def monitor(self, interval_sec=1):
+        """Polling monitor loop, detects magnetic field state and controls output linkage.
+
+        Application scenarios: access control status indication and intrusion detection, etc.
+        """
         while True:
             changed, triggered = self.update()
             if changed:
                 if triggered:
-                    print("[MiniMagnetic] Event: trigger edge")
+                    print("[MiniMagnetic] Trigger event")
                 else:
-                    print("[MiniMagnetic] Event: release edge")
-            utime.sleep(1)
+                    print("[MiniMagnetic] Release event")
+            utime.sleep(interval_sec)
 
 
-def main():
+if __name__ == '__main__':
     controller = MiniMagneticController(
         sensor_pin=Pin.GPIO31,
         output_pin=Pin.GPIO30,
@@ -95,10 +110,4 @@ def main():
         output_active_level=1,
     )
     controller.monitor()
-        
-
-if __name__ == '__main__':
-    main()
-
 ```
-

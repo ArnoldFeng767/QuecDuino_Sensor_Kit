@@ -50,16 +50,30 @@ from machine import Pin
 import utime
 
 
-class UltrasonicSensor:
-    """Ultrasonic distance measurement module packaging category."""
+class UltrasonicSensor(object):
+    """Ultrasonic distance measurement class (HC-SR04), measures distance via Trig/Echo pins.
+
+    Principle: Trig sends >=10us high level trigger, Echo returns high pulse width
+    corresponding to round-trip time, distance = pulse_width(us) / 58.0 (cm).
+
+    Built-in sliding window filter to reduce measurement noise.
+    """
 
     def __init__(self, trig_pin=Pin.GPIO30, echo_pin=Pin.GPIO31, filter_size=5):
+        """Initialize ultrasonic sensor instance.
+
+        Args:
+            trig_pin: Trigger pin GPIO number, defaults to GPIO30
+            echo_pin: Echo pin GPIO number, defaults to GPIO31
+            filter_size: Sliding window filter size, defaults to 5
+        """
         self.trig = Pin(trig_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
         self.echo = Pin(echo_pin, Pin.IN, Pin.PULL_DISABLE, 0)
         self.filter_size = filter_size
         self.dist_list = []
 
     def _trigger(self):
+        """Send trigger signal, pull Trig high for >=10us then low."""
         self.trig.off()
         utime.sleep_us(2)
         self.trig.on()
@@ -67,7 +81,13 @@ class UltrasonicSensor:
         self.trig.off()
 
     def read_distance(self):
+        """Read single distance measurement with timeout protection.
+
+        Returns:
+            float or None: Distance in cm, None on timeout or signal error
+        """
         self._trigger()
+
         t_out = 0
         while self.echo.value() == 0 and t_out < 30000:
             t_out += 1
@@ -88,6 +108,10 @@ class UltrasonicSensor:
         return round(distance, 2)
 
     def read_filtered_distance(self):
+        """Read filtered distance (sliding window average).
+
+        Valid range: 2cm ~ 800cm, out-of-range values are filtered.
+        """
         raw_dist = self.read_distance()
         if raw_dist is None or not 2 <= raw_dist <= 800:
             return None
@@ -98,10 +122,11 @@ class UltrasonicSensor:
         return round(sum(self.dist_list) / len(self.dist_list), 2)
 
     def monitor(self, interval_ms=200):
+        """Polling monitor loop, continuously measures and outputs distance."""
         while True:
             avg_dist = self.read_filtered_distance()
             if avg_dist is not None:
-                print("Current distance:", avg_dist, "cm")
+                print("Current distance: {} cm".format(avg_dist))
             else:
                 print("Out of range or signal error")
             utime.sleep_ms(interval_ms)
@@ -110,6 +135,5 @@ class UltrasonicSensor:
 if __name__ == '__main__':
     ultrasonic = UltrasonicSensor(trig_pin=Pin.GPIO30, echo_pin=Pin.GPIO31, filter_size=5)
     ultrasonic.monitor(interval_ms=200)
-
 ```
 

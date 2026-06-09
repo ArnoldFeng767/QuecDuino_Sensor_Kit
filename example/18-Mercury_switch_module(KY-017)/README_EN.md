@@ -22,40 +22,67 @@ According to the instructions provided in the table and the pictures, connect ea
 from machine import Pin
 import utime
 
-class MercurySwitch:
-    """Mercury switch sensor encapsulation class."""
+
+class MercurySwitch(object):
+    """Mercury switch sensor class, detects tilt state and controls linked output.
+
+    Application scenarios: tip-over alarm, fall detection, anti-theft devices, etc.
+    The mercury switch conducts when tilted to a certain angle, outputting the trigger level.
+    """
 
     def __init__(self, sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1, pull=Pin.PULL_PU):
+        """Initialize mercury switch sensor instance.
+
+        Args:
+            sensor_pin: Sensor input GPIO pin number, default GPIO31
+            output_pin: Linked output GPIO pin number, default GPIO30
+            trigger_level: Trigger level, 1 = high level trigger,
+                0 = low level trigger, default 1
+            pull: Pull-up/down configuration, default pull-up (Pin.PULL_PU)
+        """
         self.sensor = Pin(sensor_pin, Pin.IN, pull)
         self.output = Pin(output_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
         self.trigger_level = trigger_level
 
     def read_state(self):
+        """Read the current level state of the sensor.
+
+        Returns:
+            int: 0 or 1
+        """
         return self.sensor.read()
 
     def is_triggered(self):
+        """Check whether currently in triggered state (tilt detected).
+
+        Returns:
+            bool: True means triggered
+        """
         return self.read_state() == self.trigger_level
 
     def update(self):
+        """Update linked output based on tilt state."""
         if self.is_triggered():
             self.output.write(1)
-            print("Mercury detected inclination")
+            print("Mercury switch detected tilt")
         else:
             self.output.write(0)
-            print("Mercury did not detect inclination")
+            print("Mercury switch no tilt detected")
 
-    def monitor(self):
+    def monitor(self, interval_sec=1):
+        """Polling monitor loop, detect tilt state and control linked output.
+
+        Args:
+            interval_sec: Polling interval in seconds, default 1 second
+        """
         while True:
             self.update()
-            utime.sleep(1)
+            utime.sleep(interval_sec)
 
-def main():
-    mercury = MercurySwitch(sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1, pull=Pin.PULL_PU)
-    mercury.monitor()
 
 if __name__ == '__main__':
-    main()
-
+    mercury = MercurySwitch(sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1, pull=Pin.PULL_PU)
+    mercury.monitor(interval_sec=1)
 ```
 
  

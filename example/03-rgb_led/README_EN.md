@@ -29,38 +29,66 @@ import utime
 
 
 class RGBLED(object):
-    def __init__(self, red, green, blue):
-        self.red = red
-        self.green = green
-        self.blue = blue
+    """RGB LED control class, mixes colors via three GPIO pins (R, G, B).
 
-    def set_color(self, red, green, blue):
-        self.red.write(red)
-        self.green.write(green)
-        self.blue.write(blue)
+    Note: Common-anode wiring — inverted logic: 0 = on, 1 = off.
+    """
+
+    def __init__(self, red_pin, green_pin, blue_pin):
+        """Initialize RGB LED instance.
+
+        Args:
+            red_pin: Red channel GPIO pin (Pin object)
+            green_pin: Green channel GPIO pin (Pin object)
+            blue_pin: Blue channel GPIO pin (Pin object)
+        """
+        self.red = red_pin
+        self.green = green_pin
+        self.blue = blue_pin
+
+    def set_color(self, r, g, b):
+        """Set RGB channel levels directly.
+
+        Note: Common-anode inverted logic, 0 = on, 1 = off.
+
+        Args:
+            r: Red channel level (0 or 1)
+            g: Green channel level (0 or 1)
+            b: Blue channel level (0 or 1)
+        """
+        self.red.write(r)
+        self.green.write(g)
+        self.blue.write(b)
 
     def set_color_by_name(self, name):
+        """Set LED color by name.
+
+        Supported colors: red, green, blue, yellow, purple, cyan, white, off
+        """
+        # Common-anode inverted logic: 0 = on, 1 = off
         color_map = {
-            "red": (0, 1, 1),
-            "green": (1, 0, 1),
-            "blue": (1, 1, 0),
-            "yellow": (0, 0, 1),
-            "purple": (0, 1, 0),
-            "cyan": (1, 0, 0),
-            "white": (0, 0, 0),
-            "off": (1, 1, 1)
+            "red":    (0, 1, 1),  # Red only
+            "green":  (1, 0, 1),  # Green only
+            "blue":   (1, 1, 0),  # Blue only
+            "yellow": (0, 0, 1),  # Red + Green
+            "purple": (0, 1, 0),  # Red + Blue
+            "cyan":   (1, 0, 0),  # Green + Blue
+            "white":  (0, 0, 0),  # Red + Green + Blue (all on)
+            "off":    (1, 1, 1),  # All off
         }
         if name in color_map:
             self.set_color(*color_map[name])
 
+
 if __name__ == "__main__":
-    # Modify according to the actual pins of your development board, such as Pin.GPIO31, Pin.GPIO30, and Pin.GPIO29
+    # Pin mapping: R -> GPIO32, G -> GPIO30, B -> GPIO31
     rgb_led = RGBLED(
-        red=Pin(Pin.GPIO32, Pin.OUT, Pin.PULL_DISABLE, 0),
-        green=Pin(Pin.GPIO30, Pin.OUT, Pin.PULL_DISABLE, 0),
-        blue=Pin(Pin.GPIO31, Pin.OUT, Pin.PULL_DISABLE, 0)
+        red_pin=Pin(Pin.GPIO32, Pin.OUT, Pin.PULL_DISABLE, 0),
+        green_pin=Pin(Pin.GPIO30, Pin.OUT, Pin.PULL_DISABLE, 0),
+        blue_pin=Pin(Pin.GPIO31, Pin.OUT, Pin.PULL_DISABLE, 0),
     )
 
+    # Cycle through all preset colors
     colors = ["red", "green", "blue", "yellow", "purple", "cyan", "white", "off"]
     while True:
         for color in colors:

@@ -50,37 +50,61 @@ from machine import Pin
 import utime
 
 
-class ActiveBuzzer:
-    """有源蜂鸣器驱动类。"""
+class ActiveBuzzer(object):
+    """Active buzzer driver class, built-in oscillator, sounds when given a logic level.
+
+    The active_level parameter adapts to different trigger modes:
+        - active_level=1: High level trigger (default)
+        - active_level=0: Low level trigger (this hardware module uses low level trigger)
+    """
 
     def __init__(self, pin=Pin.GPIO31, active_level=1):
+        """Initialize active buzzer instance.
+
+        Args:
+            pin: GPIO pin number, defaults to GPIO31
+            active_level: Trigger level, 1 = high level trigger, 0 = low level trigger, defaults to 1
+        """
         self.active_level = active_level
         self.inactive_level = 0 if active_level else 1
         self.gpio = Pin(pin, Pin.OUT, Pin.PULL_DISABLE, self.inactive_level)
 
     def on(self):
+        """Turn on buzzer (output trigger level)."""
         self.gpio.write(self.active_level)
 
     def off(self):
+        """Turn off buzzer (output inactive level)."""
         self.gpio.write(self.inactive_level)
 
     def beep(self, duration_ms=200):
+        """Beep once.
+
+        Args:
+            duration_ms: Beep duration in milliseconds, defaults to 200ms
+        """
         self.on()
         utime.sleep_ms(duration_ms)
         self.off()
 
     def beep_times(self, times=3, duration_ms=200, interval_ms=200):
+        """Beep multiple times.
+
+        Args:
+            times: Number of beeps, defaults to 3
+            duration_ms: Beep duration in milliseconds, defaults to 200ms
+            interval_ms: Interval between beeps in milliseconds, defaults to 200ms
+        """
         for _ in range(times):
             self.beep(duration_ms)
             utime.sleep_ms(interval_ms)
 
 
-
 if __name__ == '__main__':
     active_buzzer = ActiveBuzzer(pin=Pin.GPIO31, active_level=1)
+    # Beep 15 times, 300ms each, 300ms interval
     active_buzzer.beep_times(times=15, duration_ms=300, interval_ms=300)
     utime.sleep_ms(1000)
- 
 ```
 
  
