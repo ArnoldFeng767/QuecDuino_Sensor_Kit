@@ -50,67 +50,105 @@ import utime
 class MagneticReedSwitch(object):
     """磁簧开关传感器类（ADC 模式），通过模拟量读取磁场强度变化。
 
-    应用场景：门窗防盗、智能计数、位置限位检测、无触点开关等。
-    当 ADC 值超过阈值时判定为检测到磁场，点亮 LED 指示。
+    Args:
+        adc_channel: ADC 通道，默认 ADC1
+        led_pin:     LED 指示 GPIO 引脚，默认 GPIO31，传 None 禁用
+        threshold:   磁场检测阈值，默认 100
+        led_on_ms:   LED 点亮持续时间 ms，默认 500（非阻塞）
     """
 
-    def __init__(self, adc_channel=None, led_pin=Pin.GPIO31, threshold=100):
-        """初始化磁簧开关传感器实例（ADC 模式）。
+    def __init__(self, adc_channel=None, led_pin=Pin.GPIO31,
+                 threshold=100, led_on_ms=500):
+        self._threshold = threshold
+        self._led_on_ms = led_on_ms
+        self._led = None
+        if led_pin is not None:
+            self._led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self._adc = ADC()
+        self._adc_channel = self._adc.ADC1 if adc_channel is None else adc_channel
+        self._callback = None
+        self._is_running = False
+        self._last_value = 0
+        self._led_off_at = 0
+
+    def set_callback(self, callback):
+        """设置磁场检测回调。
 
         Args:
-            adc_channel: ADC 通道，默认使用 ADC1
-            led_pin: LED 指示灯 GPIO 引脚号，默认 GPIO31
-            threshold: 磁场强度阈值，默认 100
+            callback: 回调函数，签名 callback(adc_value)
         """
-        self.threshold = threshold
-        self.led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
-        self.adc = ADC()
-        self.adc_channel = self.adc.ADC1 if adc_channel is None else adc_channel
-        self.is_running = False
+        self._callback = callback
 
-    def open(self):
-        """打开 ADC 通道。"""
-        self.adc.open()
+    @property
+    def threshold(self):
+        return self._threshold
+
+    @threshold.setter
+    def threshold(self, value):
+        self._threshold = value
 
     def read_value(self):
-        """读取当前磁场强度的 ADC 值。"""
-        return self.adc.read(self.adc_channel)
+        """读取当前磁场强度 ADC 值。
 
-    def handle_magnetic_field(self, value):
-        """根据磁场强度控制 LED 指示。"""
-        if value > self.threshold:
-            self.led.write(1)
-        else:
-            self.led.write(0)
+        Returns:
+            int: ADC 采样值
+        """
+        self._last_value = self._adc.read(self._adc_channel)
+        return self._last_value
 
-    def monitor(self):
-        """后台监控循环，持续采样并输出磁场状态。"""
-        self.is_running = True
-        while self.is_running:
+    def is_detected(self):
+        """判断最近一次采样是否检测到磁场。
+
+        Returns:
+            bool: True 表示检测到磁场
+        """
+        return self._last_value > self._threshold
+
+    def _led_on(self):
+        if self._led is not None:
+            self._led.write(1)
+            self._led_off_at = utime.ticks_ms() + self._led_on_ms
+
+    def _led_tick(self):
+        if self._led is not None and self._led_off_at > 0:
+            if utime.ticks_diff(utime.ticks_ms(), self._led_off_at) >= 0:
+                self._led.write(0)
+                self._led_off_at = 0
+
+    def _monitor(self):
+        """后台监控循环，非阻塞采样。"""
+        while self._is_running:
             value = self.read_value()
-            status = "检测到磁场" if value > self.threshold else "无磁场"
-            print("ADC: {} | 状态: {}".format(value, status))
-            self.handle_magnetic_field(value)
+
+            if value > self._threshold:
+                self._led_on()
+                if self._callback:
+                    self._callback(value)
+
+            self._led_tick()
             utime.sleep_ms(500)
 
     def start(self):
-        """启动后台采样线程。"""
-        self.open()
-        _thread.start_new_thread(self.monitor, ())
+        """启动 ADC 并开启后台监控线程。"""
+        self._adc.open()
+        self._is_running = True
+        _thread.start_new_thread(self._monitor, ())
 
     def stop(self):
-        """停止后台采样线程。"""
-        self.is_running = False
+        """停止后台监控线程并关闭 LED。"""
+        self._is_running = False
+        if self._led is not None:
+            self._led.write(0)
 
 
 if __name__ == '__main__':
-    magnetic_reed_switch = MagneticReedSwitch(
-        led_pin=Pin.GPIO31,
-        threshold=100,
-    )
-    magnetic_reed_switch.start()
+    def on_magnet(value):
+        print("检测到磁场! ADC = {}".format(value))
 
-    # 主线程保持运行，等待后台监控
+    sensor = MagneticReedSwitch(led_pin=Pin.GPIO31, threshold=100)
+    sensor.set_callback(on_magnet)
+    sensor.start()
+
     while True:
         utime.sleep_ms(1000)
 ```
@@ -125,58 +163,104 @@ import utime
 class ReedSwitch(object):
     """磁簧开关传感器类（GPIO 模式），通过数字量检测磁场状态变化。
 
-    应用场景：门窗防盗报警、液位浮子开关、设备到位检测等。
-    常见接线为上拉输入，磁铁靠近时输出低电平（触发）。
+    Args:
+        pin:           GPIO 引脚号，默认 GPIO31
+        trigger_level: 触发电平，0=低电平触发，1=高电平触发，默认 0
+        pull:          上下拉配置，默认上拉 (Pin.PULL_PU)
     """
 
     def __init__(self, pin=Pin.GPIO31, trigger_level=0, pull=Pin.PULL_PU):
-        """初始化磁簧开关传感器实例（GPIO 模式）。
+        self._gpio = Pin(pin, Pin.IN, pull)
+        self._trigger_level = trigger_level
+        self._last_state = self._gpio.read()
+        self._callback = None
+        self._trigger_count = 0
+
+    def set_callback(self, callback):
+        """设置状态变化回调。
 
         Args:
-            pin: GPIO 引脚号，默认 GPIO31
-            trigger_level: 触发电平，0 = 低电平触发，1 = 高电平触发，默认 0
-            pull: 上下拉配置，默认上拉 (Pin.PULL_PU)
+            callback: 回调函数，签名 callback(is_triggered)
         """
-        self.gpio = Pin(pin, Pin.IN, pull)
-        self.trigger_level = trigger_level
-        self.last_state = self.gpio.read()
+        self._callback = callback
 
     def read_state(self):
-        """读取当前 GPIO 电平状态。"""
-        return self.gpio.read()
+        """读取当前 GPIO 电平状态。
+
+        Returns:
+            int: 0 或 1
+        """
+        return self._gpio.read()
 
     def is_triggered(self):
-        """判断当前是否处于触发状态。"""
-        return self.read_state() == self.trigger_level
+        """判断当前是否处于触发状态（检测到磁场）。
+
+        Returns:
+            bool: True 表示已触发
+        """
+        return self.read_state() == self._trigger_level
 
     def check_state_change(self):
-        """检测状态是否发生变化。
+        """检测状态是否发生变化，并更新记录。
 
-        实际应用场景：门磁防盗——开门触发报警，关门恢复正常。
+        Returns:
+            tuple: (是否变化, 当前电平)
         """
         current = self.read_state()
-        changed = current != self.last_state
-        self.last_state = current
+        changed = current != self._last_state
+        if changed:
+            if current == self._trigger_level:
+                self._trigger_count += 1
+            if self._callback:
+                self._callback(current == self._trigger_level)
+        self._last_state = current
         return changed, current
 
-    def monitor(self, interval_sec=1):
-        """轮询监控循环，检测并输出磁场状态变化。"""
+    @property
+    def trigger_count(self):
+        """获取累计触发次数。"""
+        return self._trigger_count
+
+    def reset_count(self):
+        """重置触发计数归零。"""
+        self._trigger_count = 0
+
+    def wait_for_trigger(self, timeout_ms=None):
+        """阻塞等待磁场触发，可选超时。
+
+        Args:
+            timeout_ms: 超时时间 ms，None 无限等待
+
+        Returns:
+            bool: True=触发, False=超时
+        """
+        start = utime.ticks_ms()
         while True:
             changed, state = self.check_state_change()
+            if changed and state == self._trigger_level:
+                return True
+            if timeout_ms is not None:
+                if utime.ticks_diff(utime.ticks_ms(), start) >= timeout_ms:
+                    return False
+            utime.sleep_ms(10)
 
+    def monitor(self, interval_sec=1):
+        """轮询监控循环，检测并输出磁场状态变化。
+
+        Args:
+            interval_sec: 轮询间隔，单位秒，默认 1s
+        """
+        while True:
+            changed, state = self.check_state_change()
             if changed:
-                if state == self.trigger_level:
+                if state == self._trigger_level:
                     print("[ReedSwitch] 触发：检测到磁场变化")
                 else:
                     print("[ReedSwitch] 释放：磁场恢复正常")
-            else:
-                print("[ReedSwitch] 稳定：状态未变化")
-
             utime.sleep(interval_sec)
 
 
 if __name__ == "__main__":
-    # 默认上拉输入，低电平触发
     sensor = ReedSwitch(pin=Pin.GPIO31, trigger_level=0, pull=Pin.PULL_PU)
     sensor.monitor(interval_sec=1)
 ```
