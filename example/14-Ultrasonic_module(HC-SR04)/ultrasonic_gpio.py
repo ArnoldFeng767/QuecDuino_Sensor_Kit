@@ -19,29 +19,49 @@ class UltrasonicSensor(object):
 
     内置滑动窗口滤波，减少单次测量误差。
 
-    应用场景：智能小车避障、倒车雷达、液位测量、距离检测等。
+    典型用法:
+        sensor = UltrasonicSensor(trig_pin=Pin.GPIO30, echo_pin=Pin.GPIO31)
+        dist = sensor.read_filtered_distance()
+        sensor.monitor()
+
+    Args:
+        trig_pin:   触发引脚 GPIO，默认 GPIO30
+        echo_pin:   回波引脚 GPIO，默认 GPIO31
+        filter_size: 滑动窗口大小，默认 5
     """
 
     def __init__(self, trig_pin=Pin.GPIO30, echo_pin=Pin.GPIO31, filter_size=5):
-        """初始化超声波传感器实例。
+        self._trig = Pin(trig_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self._echo = Pin(echo_pin, Pin.IN, Pin.PULL_DISABLE, 0)
+        self._filter_size = filter_size
+        self._dist_list = []
+        self._callback = None
+        self._last_distance = None
+
+    # ---- 回调 ----
+
+    def set_callback(self, callback):
+        """设置测距回调。
 
         Args:
-            trig_pin: 触发引脚 GPIO 号，默认 GPIO30
-            echo_pin: 回波引脚 GPIO 号，默认 GPIO31
-            filter_size: 滑动窗口滤波大小，默认 5 次均值
+            callback: 回调函数，签名 callback(distance_cm)
         """
-        self.trig = Pin(trig_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
-        self.echo = Pin(echo_pin, Pin.IN, Pin.PULL_DISABLE, 0)
-        self.filter_size = filter_size
-        self.dist_list = []
+        self._callback = callback
+
+    # ---- 测量 ----
+
+    @property
+    def last_distance(self):
+        """最近一次有效测距值 cm。"""
+        return self._last_distance
 
     def _trigger(self):
         """发送触发信号，Trig 拉高 >=10us 后拉低。"""
-        self.trig.off()
+        self._trig.off()
         utime.sleep_us(2)
-        self.trig.on()
+        self._trig.on()
         utime.sleep_us(10)
-        self.trig.off()
+        self._trig.off()
 
     def read_distance(self):
         """读取单次测距值，带超时保护。
@@ -51,32 +71,29 @@ class UltrasonicSensor(object):
         """
         self._trigger()
 
-        # 等待 Echo 拉高（超时保护）
         t_out = 0
-        while self.echo.value() == 0 and t_out < 30000:
+        while self._echo.value() == 0 and t_out < 30000:
             t_out += 1
         if t_out >= 30000:
             return None
 
         start = utime.ticks_us()
 
-        # 等待 Echo 拉低，记录高电平持续时间（超时保护）
         t_out = 0
-        while self.echo.value() == 1 and t_out < 500000:
+        while self._echo.value() == 1 and t_out < 500000:
             t_out += 1
         if t_out >= 500000:
             return None
 
         end = utime.ticks_us()
         duration = end - start
-        # 声速 340m/s，距离 = 时间 / 58.0（cm）
         distance = duration / 58.0
         return round(distance, 2)
 
     def read_filtered_distance(self):
         """读取滤波后的距离值（滑动窗口均值）。
 
-        有效测量范围：2cm ~ 800cm，超出范围的值被过滤。
+        有效测量范围：2cm ~ 800cm。
 
         Returns:
             float or None: 滤波后距离（cm），无效时返回 None
@@ -85,21 +102,27 @@ class UltrasonicSensor(object):
         if raw_dist is None or not 2 <= raw_dist <= 800:
             return None
 
-        self.dist_list.append(raw_dist)
-        if len(self.dist_list) > self.filter_size:
-            self.dist_list.pop(0)
-        return round(sum(self.dist_list) / len(self.dist_list), 2)
+        self._dist_list.append(raw_dist)
+        if len(self._dist_list) > self._filter_size:
+            self._dist_list.pop(0)
+        result = round(sum(self._dist_list) / len(self._dist_list), 2)
+        self._last_distance = result
+        return result
+
+    # ---- 监控 ----
 
     def monitor(self, interval_ms=200):
         """轮询监控循环，持续测量并输出距离。
 
         Args:
-            interval_ms: 测量间隔，单位毫秒，默认 200ms
+            interval_ms: 测量间隔 ms，默认 200
         """
         while True:
             avg_dist = self.read_filtered_distance()
             if avg_dist is not None:
                 print("当前距离: {} cm".format(avg_dist))
+                if self._callback:
+                    self._callback(avg_dist)
             else:
                 print("超出量程或信号异常")
             utime.sleep_ms(interval_ms)
@@ -108,8 +131,3 @@ class UltrasonicSensor(object):
 if __name__ == '__main__':
     ultrasonic = UltrasonicSensor(trig_pin=Pin.GPIO30, echo_pin=Pin.GPIO31, filter_size=5)
     ultrasonic.monitor(interval_ms=200)
-
-
-
-
-
