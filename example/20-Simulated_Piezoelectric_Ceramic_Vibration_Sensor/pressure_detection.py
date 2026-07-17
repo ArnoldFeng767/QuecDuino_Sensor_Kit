@@ -15,82 +15,92 @@ import utime
 class VibrationSensor(object):
     """振动传感器类，通过 ADC 采集振动强度并阈值报警。
 
-    应用场景：机柜防拆检测、设备跌落检测、门窗振动报警等。
-    ADC 值越大表示振动/冲击越强。
+    典型用法:
+        sensor = VibrationSensor(alert_threshold=1500)
+        sensor.set_callback(lambda val: print("振动!", val))
+        sensor.start()
+
+    Args:
+        adc_channel:    ADC 通道，默认 ADC1
+        alert_threshold: 报警阈值，默认 1500
+        sample_ms:      采样间隔 ms，默认 200
     """
 
-    def __init__(self, adc_channel=None, alert_threshold=1500):
-        """初始化振动传感器实例。
+    def __init__(self, adc_channel=None, alert_threshold=1500, sample_ms=200):
+        self._alert_threshold = alert_threshold
+        self._sample_ms = sample_ms
+        self._adc = ADC()
+        self._adc_channel = self._adc.ADC1 if adc_channel is None else adc_channel
+        self._callback = None
+        self._is_running = False
+        self._last_value = 0
+
+    # ---- 回调 ----
+
+    def set_callback(self, callback):
+        """设置振动报警回调。
 
         Args:
-            adc_channel: ADC 通道，默认使用 ADC1
-            alert_threshold: 振动报警阈值，ADC 值超过此值触发报警，默认 1500
+            callback: 回调函数，签名 callback(adc_value)
         """
-        self.adc = ADC()
-        self.adc_channel = self.adc.ADC1 if adc_channel is None else adc_channel
-        self.alert_threshold = alert_threshold
-        self.is_running = False
+        self._callback = callback
 
-    def open(self):
-        """打开 ADC 通道。"""
-        self.adc.open()
+    # ---- 阈值 ----
+
+    @property
+    def alert_threshold(self):
+        return self._alert_threshold
+
+    @alert_threshold.setter
+    def alert_threshold(self, value):
+        self._alert_threshold = value
+
+    # ---- 读取 ----
 
     def read_value(self):
-        """读取当前振动强度 ADC 值。
+        """读取当前振动强度 ADC 值。"""
+        self._last_value = self._adc.read(self._adc_channel)
+        return self._last_value
 
-        注意：值越大通常表示振动/冲击越强。
-
-        Returns:
-            int: ADC 采样值
-        """
-        return self.adc.read(self.adc_channel)
-
-    def check_alert(self, value):
+    def is_alert(self, value=None):
         """判断振动是否超过报警阈值。
 
-        实际应用场景：机柜防拆检测、设备跌落检测、门窗振动报警等。
-
         Args:
-            value: 当前 ADC 采样值
+            value: ADC 值，默认使用最近一次采样值
 
         Returns:
             bool: True 表示触发报警
         """
-        return value >= self.alert_threshold
+        v = value if value is not None else self._last_value
+        return v >= self._alert_threshold
 
-    def monitor(self, interval_ms=200):
-        """后台监控循环，持续采样并输出振动状态。
+    # ---- 监控 ----
 
-        Args:
-            interval_ms: 采样间隔，单位毫秒，默认 200ms
-        """
-        self.is_running = True
-        while self.is_running:
+    def _monitor(self):
+        """后台监控循环。"""
+        while self._is_running:
             value = self.read_value()
-            if self.check_alert(value):
+            if value >= self._alert_threshold:
                 print("振动报警, 数值 = {}".format(value))
-            else:
-                print("振动数值 = {}".format(value))
-            utime.sleep_ms(interval_ms)
+                if self._callback:
+                    self._callback(value)
+            utime.sleep_ms(self._sample_ms)
 
-    def start(self, interval_ms=200):
-        """启动后台监控线程。
-
-        Args:
-            interval_ms: 采样间隔，单位毫秒，默认 200ms
-        """
-        self.open()
-        _thread.start_new_thread(self.monitor, (interval_ms,))
+    def start(self):
+        """启动 ADC 并开启后台监控线程。"""
+        self._adc.open()
+        self._is_running = True
+        _thread.start_new_thread(self._monitor, ())
 
     def stop(self):
         """停止后台监控线程。"""
-        self.is_running = False
+        self._is_running = False
 
 
 if __name__ == '__main__':
-    sensor = VibrationSensor(alert_threshold=1500)
+    sensor = VibrationSensor(alert_threshold=1500, sample_ms=200)
+    sensor.set_callback(lambda v: print("振动报警触发! ADC={}".format(v)))
     sensor.start()
 
-    # 主线程保持运行，等待后台监控
     while True:
         utime.sleep_ms(1000)

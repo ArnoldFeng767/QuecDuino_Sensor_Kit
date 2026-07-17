@@ -32,90 +32,76 @@ import utime
 
 
 class VibrationSensor(object):
-    """Vibration sensor class, acquires vibration intensity via ADC and
-    triggers threshold alerts.
+    """Vibration sensor class, acquires vibration intensity via ADC with threshold alerts.
 
-    Application scenarios: cabinet tamper detection, device drop detection,
-    door/window vibration alarm, etc.
-    Higher ADC values indicate stronger vibration/impact.
+    Example:
+        sensor = VibrationSensor(alert_threshold=1500)
+        sensor.set_callback(lambda val: print("vibration!", val))
+        sensor.start()
+
+    Args:
+        adc_channel:    ADC channel, default ADC1
+        alert_threshold: alert threshold, default 1500
+        sample_ms:      sampling interval in ms, default 200
     """
 
-    def __init__(self, adc_channel=None, alert_threshold=1500):
-        """Initialize vibration sensor instance.
+    def __init__(self, adc_channel=None, alert_threshold=1500, sample_ms=200):
+        self._alert_threshold = alert_threshold
+        self._sample_ms = sample_ms
+        self._adc = ADC()
+        self._adc_channel = self._adc.ADC1 if adc_channel is None else adc_channel
+        self._callback = None
+        self._is_running = False
+        self._last_value = 0
 
-        Args:
-            adc_channel: ADC channel, defaults to ADC1
-            alert_threshold: Vibration alert threshold, triggers alarm when
-                ADC value exceeds this value, default 1500
-        """
-        self.adc = ADC()
-        self.adc_channel = self.adc.ADC1 if adc_channel is None else adc_channel
-        self.alert_threshold = alert_threshold
-        self.is_running = False
+    def set_callback(self, callback):
+        """Set vibration alert callback. callback(adc_value)"""
+        self._callback = callback
 
-    def open(self):
-        """Open the ADC channel."""
-        self.adc.open()
+    @property
+    def alert_threshold(self):
+        return self._alert_threshold
+
+    @alert_threshold.setter
+    def alert_threshold(self, value):
+        self._alert_threshold = value
 
     def read_value(self):
-        """Read the current vibration intensity ADC value.
+        """Read the current vibration intensity ADC value."""
+        self._last_value = self._adc.read(self._adc_channel)
+        return self._last_value
 
-        Note: Higher values generally indicate stronger vibration/impact.
+    def is_alert(self, value=None):
+        """Check whether vibration exceeds alert threshold."""
+        v = value if value is not None else self._last_value
+        return v >= self._alert_threshold
 
-        Returns:
-            int: ADC sample value
-        """
-        return self.adc.read(self.adc_channel)
-
-    def check_alert(self, value):
-        """Check whether vibration exceeds the alert threshold.
-
-        Application scenarios: cabinet tamper detection, device drop detection,
-        door/window vibration alarm, etc.
-
-        Args:
-            value: Current ADC sample value
-
-        Returns:
-            bool: True means alert triggered
-        """
-        return value >= self.alert_threshold
-
-    def monitor(self, interval_ms=200):
-        """Background monitoring loop, continuously samples and outputs
-        vibration state.
-
-        Args:
-            interval_ms: Sampling interval in milliseconds, default 200ms
-        """
-        self.is_running = True
-        while self.is_running:
+    def _monitor(self):
+        """Background monitoring loop."""
+        while self._is_running:
             value = self.read_value()
-            if self.check_alert(value):
+            if value >= self._alert_threshold:
                 print("Vibration alert, value = {}".format(value))
-            else:
-                print("Vibration value = {}".format(value))
-            utime.sleep_ms(interval_ms)
+                if self._callback:
+                    self._callback(value)
+            utime.sleep_ms(self._sample_ms)
 
-    def start(self, interval_ms=200):
-        """Start background monitoring thread.
-
-        Args:
-            interval_ms: Sampling interval in milliseconds, default 200ms
-        """
-        self.open()
-        _thread.start_new_thread(self.monitor, (interval_ms,))
+    def start(self):
+        """Open ADC and start background monitoring thread."""
+        self._adc.open()
+        self._is_running = True
+        _thread.start_new_thread(self._monitor, ())
 
     def stop(self):
         """Stop background monitoring thread."""
-        self.is_running = False
+        self._is_running = False
 
 
 if __name__ == '__main__':
-    sensor = VibrationSensor(alert_threshold=1500)
+    sensor = VibrationSensor(alert_threshold=1500, sample_ms=200)
+    sensor.set_callback(lambda v: print("Alert triggered! ADC={}".format(v)))
     sensor.start()
 
-    # Keep main thread running, wait for background monitoring
     while True:
         utime.sleep_ms(1000)
 ```
