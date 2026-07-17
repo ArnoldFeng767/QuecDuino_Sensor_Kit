@@ -38,13 +38,17 @@ class DigitalTubeDisplay(object):
     Segment encoding (common anode, 0 = on, 1 = off):
         Index order: [a, b, c, d, e, f, g, dp]
 
-    Pin mapping:
-        GPIO32 -> a, GPIO31 -> b, GPIO30 -> c, GPIO33 -> d,
-        GPIO2  -> e, GPIO3  -> f, GPIO14 -> g, GPIO15 -> dp
+    Example:
+        display = DigitalTubeDisplay()
+        display.show(5)
+        display.countdown(10)
+        display.clear()
+
+    Args:
+        auto_clear: auto-clear before each display, default True
     """
 
-    # Segment code table for digits 0-9 (common anode inverse logic)
-    NUM_TABLE = [
+    _NUM_TABLE = [
         [0, 0, 0, 0, 1, 0, 0, 0],  # 0
         [0, 1, 0, 1, 1, 0, 1, 1],  # 1
         [1, 0, 0, 0, 0, 0, 0, 1],  # 2
@@ -57,9 +61,9 @@ class DigitalTubeDisplay(object):
         [0, 0, 0, 0, 0, 0, 1, 0],  # 9
     ]
 
-    def __init__(self):
-        """Initialize digital tube display instance, configure 8 segment pins as output mode."""
-        self.segments = [
+    def __init__(self, auto_clear=True):
+        self._auto_clear = auto_clear
+        self._segments = [
             Pin(Pin.GPIO32, Pin.OUT, Pin.PULL_DISABLE, 1),  # a
             Pin(Pin.GPIO31, Pin.OUT, Pin.PULL_DISABLE, 1),  # b
             Pin(Pin.GPIO30, Pin.OUT, Pin.PULL_DISABLE, 1),  # c
@@ -69,39 +73,46 @@ class DigitalTubeDisplay(object):
             Pin(Pin.GPIO14, Pin.OUT, Pin.PULL_DISABLE, 1),  # g
             Pin(Pin.GPIO15, Pin.OUT, Pin.PULL_DISABLE, 1),  # dp
         ]
+        self._current = None
 
-    def display_num(self, number):
-        """Display the specified digit (0-9).
-
-        Args:
-            number: The digit to display, range 0-9
-        """
+    def show(self, number):
+        """Display the specified digit (0-9), silently ignores out-of-range."""
         if number < 0 or number > 9:
             return
-
-        values = self.NUM_TABLE[number]
-        for segment, value in zip(self.segments, values):
-            segment.write(value)
+        self._current = number
+        values = self._NUM_TABLE[number]
+        for seg, val in zip(self._segments, values):
+            seg.write(val)
 
     def clear(self):
         """Clear the display (all segments off)."""
-        for segment in self.segments:
-            segment.write(1)
+        self._current = None
+        for seg in self._segments:
+            seg.write(1)
+
+    @property
+    def current(self):
+        """Currently displayed digit, None if cleared."""
+        return self._current
+
+    def countdown(self, start=9, end=0, interval_sec=1):
+        """Countdown display."""
+        step = -1 if start > end else 1
+        for n in range(start, end + step, step):
+            self.show(n)
+            utime.sleep(interval_sec)
 
     def demo(self, interval_sec=1):
-        """Demo loop, display digits 0-9 sequentially.
-
-        Args:
-            interval_sec: Display duration per digit in seconds, default 1 second
-        """
+        """Demo loop, display digits 0-9 sequentially."""
         while True:
-            for number in range(10):
-                self.display_num(number)
+            for n in range(10):
+                self.show(n)
                 utime.sleep(interval_sec)
 
 
 if __name__ == '__main__':
     display = DigitalTubeDisplay()
-    display.demo(interval_sec=1)
+    display.countdown(9, 0, interval_sec=1)
+    display.clear()
 ```
 
