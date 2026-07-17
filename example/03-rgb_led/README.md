@@ -31,69 +31,118 @@ import utime
 class RGBLED(object):
     """RGB LED 控制类，通过三个 GPIO 引脚控制红、绿、蓝三色混光。
 
-    注意：本模块为共阳极接法，电平逻辑为反逻辑 —— 0 表示点亮，1 表示熄灭。
+    通过 active_level 参数适配不同硬件接法：
+        - active_level=0：共阳极（低电平点亮，默认）
+        - active_level=1：共阴极（高电平点亮）
+
+    Args:
+        red_pin:     红色通道 GPIO 引脚（Pin 对象）
+        green_pin:   绿色通道 GPIO 引脚（Pin 对象）
+        blue_pin:    蓝色通道 GPIO 引脚（Pin 对象）
+        active_level: 点亮电平，0=低电平点亮，1=高电平点亮，默认 0（共阳极）
     """
 
-    def __init__(self, red_pin, green_pin, blue_pin):
-        """初始化 RGB LED 实例。
+    # 颜色名 -> RGB 逻辑值映射（1=亮, 0=灭，与硬件电平解耦）
+    COLOR_MAP = {
+        "red":    (1, 0, 0),
+        "green":  (0, 1, 0),
+        "blue":   (0, 0, 1),
+        "yellow": (1, 1, 0),
+        "purple": (1, 0, 1),
+        "cyan":   (0, 1, 1),
+        "white":  (1, 1, 1),
+        "off":    (0, 0, 0),
+    }
 
-        Args:
-            red_pin: 红色通道 GPIO 引脚（Pin 对象）
-            green_pin: 绿色通道 GPIO 引脚（Pin 对象）
-            blue_pin: 蓝色通道 GPIO 引脚（Pin 对象）
-        """
+    def __init__(self, red_pin, green_pin, blue_pin, active_level=0):
+        self._active = active_level
+        self._inactive = 1 if active_level else 0
         self.red = red_pin
         self.green = green_pin
         self.blue = blue_pin
+        self._state = (0, 0, 0)
 
     def set_color(self, r, g, b):
-        """直接设置 RGB 三通道电平。
-
-        注意：共阳极反逻辑，0 = 点亮，1 = 熄灭。
+        """设置 RGB 三通道逻辑状态（1=亮, 0=灭）。
 
         Args:
-            r: 红色通道电平（0 或 1）
-            g: 绿色通道电平（0 或 1）
-            b: 蓝色通道电平（0 或 1）
+            r: 红色通道，1=亮, 0=灭
+            g: 绿色通道，1=亮, 0=灭
+            b: 蓝色通道，1=亮, 0=灭
         """
-        self.red.write(r)
-        self.green.write(g)
-        self.blue.write(b)
+        self._state = (r, g, b)
+        self.red.write(self._active if r else self._inactive)
+        self.green.write(self._active if g else self._inactive)
+        self.blue.write(self._active if b else self._inactive)
 
     def set_color_by_name(self, name):
         """通过颜色名称设置 LED 颜色。
 
         支持的颜色：red, green, blue, yellow, purple, cyan, white, off
+
+        Args:
+            name: 颜色名称字符串（大小写不敏感）
+
+        Returns:
+            bool: True 表示设置成功，False 表示未知颜色
         """
-        # 共阳极反逻辑：0 = 点亮，1 = 熄灭
-        color_map = {
-            "red":    (0, 1, 1),  # 仅红亮
-            "green":  (1, 0, 1),  # 仅绿亮
-            "blue":   (1, 1, 0),  # 仅蓝亮
-            "yellow": (0, 0, 1),  # 红 + 绿
-            "purple": (0, 1, 0),  # 红 + 蓝
-            "cyan":   (1, 0, 0),  # 绿 + 蓝
-            "white":  (0, 0, 0),  # 红 + 绿 + 蓝（全亮）
-            "off":    (1, 1, 1),  # 全部熄灭
-        }
-        if name in color_map:
-            self.set_color(*color_map[name])
+        name = name.lower()
+        if name in self.COLOR_MAP:
+            self.set_color(*self.COLOR_MAP[name])
+            return True
+        return False
+
+    def off(self):
+        """熄灭所有通道。"""
+        self.set_color(0, 0, 0)
+
+    def read(self):
+        """获取当前 RGB 逻辑状态。
+
+        Returns:
+            tuple: (r, g, b)，1=亮, 0=灭
+        """
+        return self._state
+
+    def blink(self, colors=None, interval=0.5, times=None):
+        """多色闪烁，在指定颜色列表间循环切换。
+
+        Args:
+            colors:   颜色名列表，默认 ["red", "green", "blue"]
+            interval: 切换间隔，单位秒，默认 0.5s
+            times:    循环次数，None 表示无限循环
+        """
+        if colors is None:
+            colors = ["red", "green", "blue"]
+
+        n = 0
+        while times is None or n < times:
+            for color in colors:
+                self.set_color_by_name(color)
+                utime.sleep(interval)
+            n += 1
+
+    def demo(self, interval=1):
+        """演示循环，依次展示所有预设颜色。
+
+        Args:
+            interval: 切换间隔，单位秒，默认 1 秒
+        """
+        color_names = list(self.COLOR_MAP.keys())
+        while True:
+            for color in color_names:
+                self.set_color_by_name(color)
+                print("LED color set to {}".format(color))
+                utime.sleep(interval)
 
 
 if __name__ == "__main__":
-    # 引脚映射：R -> GPIO32, G -> GPIO30, B -> GPIO31
     rgb_led = RGBLED(
         red_pin=Pin(Pin.GPIO32, Pin.OUT, Pin.PULL_DISABLE, 0),
         green_pin=Pin(Pin.GPIO30, Pin.OUT, Pin.PULL_DISABLE, 0),
         blue_pin=Pin(Pin.GPIO31, Pin.OUT, Pin.PULL_DISABLE, 0),
+        active_level=0,
     )
-
-    # 循环展示所有预设颜色
-    colors = ["red", "green", "blue", "yellow", "purple", "cyan", "white", "off"]
-    while True:
-        for color in colors:
-            rgb_led.set_color_by_name(color)
-            print("LED color set to {}".format(color))
-            utime.sleep(1)
+    rgb_led.demo(interval=1)
 ```
 

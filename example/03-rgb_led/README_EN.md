@@ -31,69 +31,123 @@ import utime
 class RGBLED(object):
     """RGB LED control class, mixes colors via three GPIO pins (R, G, B).
 
-    Note: Common-anode wiring — inverted logic: 0 = on, 1 = off.
+    Supports different hardware via active_level:
+        - active_level=0: common-anode (low to light, default)
+        - active_level=1: common-cathode (high to light)
+
+    Example:
+        rgb = RGBLED(Pin.GPIO32, Pin.GPIO30, Pin.GPIO31, active_level=1)
+        rgb.set_color_by_name("red")
+        rgb.blink(colors=["red", "blue"], interval=0.5, times=3)
+
+    Args:
+        red_pin:     Red channel GPIO pin (Pin object)
+        green_pin:   Green channel GPIO pin (Pin object)
+        blue_pin:    Blue channel GPIO pin (Pin object)
+        active_level: level to light, 0=low-active, 1=high-active, default 0
     """
 
-    def __init__(self, red_pin, green_pin, blue_pin):
-        """Initialize RGB LED instance.
+    # Color name -> RGB logical values (1=on, 0=off, decoupled from hardware level)
+    COLOR_MAP = {
+        "red":    (1, 0, 0),
+        "green":  (0, 1, 0),
+        "blue":   (0, 0, 1),
+        "yellow": (1, 1, 0),
+        "purple": (1, 0, 1),
+        "cyan":   (0, 1, 1),
+        "white":  (1, 1, 1),
+        "off":    (0, 0, 0),
+    }
 
-        Args:
-            red_pin: Red channel GPIO pin (Pin object)
-            green_pin: Green channel GPIO pin (Pin object)
-            blue_pin: Blue channel GPIO pin (Pin object)
-        """
+    def __init__(self, red_pin, green_pin, blue_pin, active_level=0):
+        self._active = active_level
+        self._inactive = 1 if active_level else 0
         self.red = red_pin
         self.green = green_pin
         self.blue = blue_pin
+        self._state = (0, 0, 0)
 
     def set_color(self, r, g, b):
-        """Set RGB channel levels directly.
-
-        Note: Common-anode inverted logic, 0 = on, 1 = off.
+        """Set RGB channel logical state (1=on, 0=off).
 
         Args:
-            r: Red channel level (0 or 1)
-            g: Green channel level (0 or 1)
-            b: Blue channel level (0 or 1)
+            r: red channel, 1=on, 0=off
+            g: green channel, 1=on, 0=off
+            b: blue channel, 1=on, 0=off
         """
-        self.red.write(r)
-        self.green.write(g)
-        self.blue.write(b)
+        self._state = (r, g, b)
+        self.red.write(self._active if r else self._inactive)
+        self.green.write(self._active if g else self._inactive)
+        self.blue.write(self._active if b else self._inactive)
 
     def set_color_by_name(self, name):
-        """Set LED color by name.
+        """Set LED color by name (case-insensitive).
 
-        Supported colors: red, green, blue, yellow, purple, cyan, white, off
+        Supported: red, green, blue, yellow, purple, cyan, white, off
+
+        Args:
+            name: color name string
+
+        Returns:
+            bool: True on success, False for unknown color
         """
-        # Common-anode inverted logic: 0 = on, 1 = off
-        color_map = {
-            "red":    (0, 1, 1),  # Red only
-            "green":  (1, 0, 1),  # Green only
-            "blue":   (1, 1, 0),  # Blue only
-            "yellow": (0, 0, 1),  # Red + Green
-            "purple": (0, 1, 0),  # Red + Blue
-            "cyan":   (1, 0, 0),  # Green + Blue
-            "white":  (0, 0, 0),  # Red + Green + Blue (all on)
-            "off":    (1, 1, 1),  # All off
-        }
-        if name in color_map:
-            self.set_color(*color_map[name])
+        name = name.lower()
+        if name in self.COLOR_MAP:
+            self.set_color(*self.COLOR_MAP[name])
+            return True
+        return False
+
+    def off(self):
+        """Turn off all channels."""
+        self.set_color(0, 0, 0)
+
+    def read(self):
+        """Get current RGB logical state.
+
+        Returns:
+            tuple: (r, g, b), 1=on, 0=off
+        """
+        return self._state
+
+    def blink(self, colors=None, interval=0.5, times=None):
+        """Multi-color blink, cycles through the given color list.
+
+        Args:
+            colors:   list of color names, default ["red", "green", "blue"]
+            interval: switch interval in seconds, default 0.5s
+            times:    number of full cycles, None for infinite
+        """
+        if colors is None:
+            colors = ["red", "green", "blue"]
+
+        n = 0
+        while times is None or n < times:
+            for color in colors:
+                self.set_color_by_name(color)
+                utime.sleep(interval)
+            n += 1
+
+    def demo(self, interval=1):
+        """Demo loop, cycles through all preset colors.
+
+        Args:
+            interval: switch interval in seconds, default 1s
+        """
+        color_names = list(self.COLOR_MAP.keys())
+        while True:
+            for color in color_names:
+                self.set_color_by_name(color)
+                print("LED color set to {}".format(color))
+                utime.sleep(interval)
 
 
 if __name__ == "__main__":
-    # Pin mapping: R -> GPIO32, G -> GPIO30, B -> GPIO31
     rgb_led = RGBLED(
         red_pin=Pin(Pin.GPIO32, Pin.OUT, Pin.PULL_DISABLE, 0),
         green_pin=Pin(Pin.GPIO30, Pin.OUT, Pin.PULL_DISABLE, 0),
         blue_pin=Pin(Pin.GPIO31, Pin.OUT, Pin.PULL_DISABLE, 0),
+        active_level=0,
     )
-
-    # Cycle through all preset colors
-    colors = ["red", "green", "blue", "yellow", "purple", "cyan", "white", "off"]
-    while True:
-        for color in colors:
-            rgb_led.set_color_by_name(color)
-            print("LED color set to {}".format(color))
-            utime.sleep(1)
+    rgb_led.demo(interval=1)
 ```
 
