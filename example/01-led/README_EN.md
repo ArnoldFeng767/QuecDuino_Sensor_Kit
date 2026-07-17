@@ -36,58 +36,83 @@ import utime
 
 
 class LED(object):
-    """LED control class, wraps GPIO pin for basic LED operations.
+    """LED driver class, wraps GPIO pin for basic LED operations.
+
+    Supports different hardware configurations via active_level:
+        - active_level=1: high-level to light (default, source drive / common cathode)
+        - active_level=0: low-level to light (sink drive / common anode)
+
+    Example:
+        led = LED(Pin.GPIO31)
+        led.on()
+        led.blink(times=5, interval=0.5)
 
     Args:
-        pin: GPIO pin number, e.g. Pin.GPIO31
+        pin:  GPIO pin number, e.g. Pin.GPIO31
+        active_level: level to light the LED, 1=high-active, 0=low-active
     """
 
-    def __init__(self, pin):
-        # Initialize GPIO as output mode, disable pull-up/down resistor, default low (LED off)
-        self.pin = Pin(pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+    def __init__(self, pin, active_level=1):
+        self.active_level = active_level
+        self.inactive_level = 0 if active_level else 1
+        self.pin = Pin(pin, Pin.OUT, Pin.PULL_DISABLE, self.inactive_level)
+        self.state = 0  # 0=off, 1=on (software tracked, decoupled from hardware level)
 
     def write(self, value):
-        """Set the LED pin level.
+        """Set the LED logical state.
 
         Args:
-            value: 1 for high (on), 0 for low (off)
+            value: 1=on, 0=off (logical value, independent of active_level)
         """
-        self.pin.write(value)
+        self.state = value
+        self.pin.write(self.active_level if value else self.inactive_level)
 
     def read(self):
-        """Read the current LED pin level.
+        """Read the current LED logical state.
 
         Returns:
-            int: 1 or 0
+            int: 1=on, 0=off
         """
-        return self.pin.read()
+        return self.state
 
     def on(self):
-        """Turn on the LED (output high)."""
-        self.pin.write(1)
+        """Turn on the LED."""
+        self.write(1)
 
     def off(self):
-        """Turn off the LED (output low)."""
-        self.pin.write(0)
+        """Turn off the LED."""
+        self.write(0)
 
-    def blink(self, interval=1):
+    def toggle(self):
+        """Toggle the LED state (on→off, off→on)."""
+        self.write(0 if self.state else 1)
+
+    def blink(self, interval=0.5, times=None):
         """Blink the LED at the specified interval.
 
         Args:
-            interval: on/off toggle interval in seconds, default 1
+            interval: duration of each on/off half-cycle in seconds, default 0.5s
+            times:    number of blink cycles (on+off=1), None for infinite loop
+
+        Example:
+            led.blink(interval=0.2, times=3)   # quick flash 3 times then stop
+            led.blink(interval=1.0)             # blink every second, infinite
         """
-        while True:
+        n = 0
+        while times is None or n < times:
             self.on()
             utime.sleep(interval)
             self.off()
             utime.sleep(interval)
+            n += 1
 
 
 if __name__ == '__main__':
-    # Create LED instance on GPIO31
-    led = LED(Pin.GPIO31)
-    # Run blink test (toggle every 1 second)
-    led.blink()
+    led = LED(Pin.GPIO31, active_level=1)
+    # Quick flash 3 times then stay on
+    led.blink(interval=0.3, times=3)
+    led.on()
+    print("LED test done: 3 blinks then steady on")
 ```
 
  
