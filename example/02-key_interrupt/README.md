@@ -40,24 +40,36 @@ from machine import ExtInt, Pin
 
 
 class KeyInterrupt(object):
-    """按键中断类，基于外部中断实现按键检测与计数。"""
+    """按键中断驱动类，基于外部中断实现按键检测、轮询与计数。
 
-    def __init__(self, pin, mode=ExtInt.IRQ_FALLING, pull=Pin.PULL_PU, filter_time=50, user_callback=None):
-        self.pin = pin
-        self.mode = mode
-        self.pull = pull
-        self.filter_time = filter_time
-        self.user_callback = user_callback
-        self.press_count = 0
-        # 注册外部中断，按键按下时触发 _irq_handler
-        self._extint = ExtInt(self.pin, self.mode, self.pull, self._irq_handler, self.filter_time)
+    支持两种使用模式：
+        - 中断模式：注册回调，按键按下自动触发
+        - 轮询模式：主动调用 read_state() / is_pressed()
+
+    Args:
+        pin:         GPIO 引脚号，例如 Pin.GPIO31
+        mode:        中断触发模式，默认下降沿 (ExtInt.IRQ_FALLING)
+        pull:        上下拉配置，默认上拉 (Pin.PULL_PU)
+        filter_time: 硬件消抖时间，单位 ms，默认 50
+        callback:    用户回调函数，签名 callback(args, count)
+    """
+
+    def __init__(self, pin, mode=ExtInt.IRQ_FALLING, pull=Pin.PULL_PU,
+                 filter_time=50, callback=None):
+        self._pin_obj = Pin(pin, Pin.IN, pull)
+        self._press_count = 0
+        self._callback = callback
+        self._extint = ExtInt(pin, mode, pull, self._irq_handler, filter_time)
 
     def _irq_handler(self, args):
         """中断服务函数，在中断上下文中执行，不宜做耗时操作。"""
-        self.press_count += 1
-        print("[KeyInterrupt] key pressed, count = {}".format(self.press_count))
-        if self.user_callback:
-            self.user_callback(args, self.press_count)
+        self._press_count += 1
+        if self._callback:
+            self._callback(args, self._press_count)
+
+    def set_callback(self, callback):
+        """设置或替换用户回调函数。"""
+        self._callback = callback
 
     def enable(self):
         """使能按键中断。"""
@@ -67,29 +79,66 @@ class KeyInterrupt(object):
         """禁用按键中断。"""
         self._extint.disable()
 
+    def read_state(self):
+        """读取按键当前 GPIO 电平。
+
+        Returns:
+            int: 0=按下, 1=释放
+        """
+        return self._pin_obj.read()
+
+    def is_pressed(self):
+        """判断按键当前是否被按下。
+
+        Returns:
+            bool: True 表示按下
+        """
+        return self.read_state() == 0
+
+    @property
+    def count(self):
+        """获取累计按下次数。"""
+        return self._press_count
+
     def reset_count(self):
         """重置按键计数归零。"""
-        self.press_count = 0
+        self._press_count = 0
+
+    def wait_for_press(self, timeout_ms=None):
+        """阻塞等待按键按下，可选超时。
+
+        Args:
+            timeout_ms: 超时时间（ms），None 表示无限等待
+
+        Returns:
+            bool: True 表示按下，False 表示超时
+        """
+        start = utime.ticks_ms()
+        while True:
+            if self.is_pressed():
+                return True
+            if timeout_ms is not None:
+                if utime.ticks_diff(utime.ticks_ms(), start) >= timeout_ms:
+                    return False
+            utime.sleep_ms(10)
 
 
 def on_key_pressed(args, count):
     """示例回调函数，按键按下时打印中断参数和计数。"""
-    print("[UserCallback] args = {}, count = {}".format(args, count))
+    print("[Callback] pressed, count = {}".format(count))
 
 
 if __name__ == "__main__":
-    # 根据开发板实际引脚修改，此处使用 GPIO31
     key = KeyInterrupt(
         pin=Pin.GPIO31,
         mode=ExtInt.IRQ_FALLING,
         pull=Pin.PULL_PU,
         filter_time=50,
-        user_callback=on_key_pressed,
+        callback=on_key_pressed,
     )
     key.enable()
+    print("按键中断已启用，按下按键触发。")
 
-    print("Key interrupt is enabled. Press the key to trigger interrupt.")
-    # 保持主线程运行，等待中断触发
     while True:
         utime.sleep_ms(500)
 ```
