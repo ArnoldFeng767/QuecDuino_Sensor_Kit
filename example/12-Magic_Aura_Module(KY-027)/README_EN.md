@@ -33,46 +33,89 @@ import utime
 class TiltSwitch(object):
     """Tilt switch sensor class, detects device posture and controls output linkage.
 
-    Application scenarios: tipping alarm, equipment posture detection, transportation vibration/deflection indication, etc.
+    Example:
+        ts = TiltSwitch(sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30)
+        ts.set_callback(lambda t: print("tilted!" if t else "normal"))
+        ts.monitor()
+
+    Args:
+        sensor_pin:   sensor input GPIO, default GPIO31
+        output_pin:   linkage output GPIO, default GPIO30, pass None to disable
+        trigger_level: 1=high-trigger, 0=low-trigger, default 1
     """
 
     def __init__(self, sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1):
-        """Initialize tilt switch sensor instance.
+        self._sensor = Pin(sensor_pin, Pin.IN, Pin.PULL_PD)
+        self._output = None
+        if output_pin is not None:
+            self._output = Pin(output_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self._trigger_level = trigger_level
+        self._last_state = self._sensor.read()
+        self._callback = None
+        self._trigger_count = 0
 
-        Args:
-            sensor_pin: Sensor input GPIO pin number, defaults to GPIO31
-            output_pin: Linkage output GPIO pin number, defaults to GPIO30
-            trigger_level: Trigger level, defaults to 1 (high level trigger)
-        """
-        self.sensor = Pin(sensor_pin, Pin.IN, Pin.PULL_PD)
-        self.output = Pin(output_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
-        self.trigger_level = trigger_level
+    def set_callback(self, callback):
+        """Set state change callback. callback(is_tilted)"""
+        self._callback = callback
 
     def read_state(self):
         """Read current sensor level state."""
-        return self.sensor.read()
+        return self._sensor.read()
 
     def is_tilted(self):
         """Check if currently in tilted state."""
-        return self.read_state() == self.trigger_level
+        return self.read_state() == self._trigger_level
 
-    def update(self):
-        """Update linkage output based on tilt state."""
-        if self.is_tilted():
-            self.output.write(1)
-            print("Tilt detected")
-        else:
-            self.output.write(0)
-            print("Normal position")
+    def set_output(self, active):
+        """Control linkage output pin."""
+        if self._output is not None:
+            self._output.write(1 if active else 0)
+
+    @property
+    def trigger_count(self):
+        """Get cumulative trigger count."""
+        return self._trigger_count
+
+    def reset_count(self):
+        """Reset trigger count to zero."""
+        self._trigger_count = 0
+
+    def wait_for_tilt(self, timeout_ms=None):
+        """Block and wait for tilt trigger."""
+        start = utime.ticks_ms()
+        while True:
+            if self.is_tilted():
+                return True
+            if timeout_ms is not None:
+                if utime.ticks_diff(utime.ticks_ms(), start) >= timeout_ms:
+                    return False
+            utime.sleep_ms(10)
+
+    def _check_state(self):
+        state = self.read_state()
+        tilted = state == self._trigger_level
+        self.set_output(tilted)
+        changed = state != self._last_state
+        if changed and tilted:
+            self._trigger_count += 1
+            if self._callback:
+                self._callback(True)
+        elif changed and not tilted:
+            if self._callback:
+                self._callback(False)
+        self._last_state = state
+        return changed, tilted
 
     def monitor(self, interval_sec=1):
-        """Polling monitor loop, detects tilt state and controls output linkage."""
+        """Polling monitor loop."""
         while True:
-            self.update()
+            changed, tilted = self._check_state()
+            if changed:
+                print("Tilt detected" if tilted else "Normal position")
             utime.sleep(interval_sec)
 
 
 if __name__ == '__main__':
-    tilt_switch = TiltSwitch(sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1)
-    tilt_switch.monitor(interval_sec=1)
+    ts = TiltSwitch(sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1)
+    ts.monitor(interval_sec=1)
 ```
