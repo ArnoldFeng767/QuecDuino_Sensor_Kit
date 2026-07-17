@@ -38,71 +38,134 @@ class ObstacleSensor(object):
         - No obstacle: OUT outputs high level (1)
         - Obstacle detected: OUT outputs low level (0)
 
-    Application scenarios: robot obstacle avoidance, auto door sensing, limit detection, smart trash can, etc.
+    Example:
+        sensor = ObstacleSensor(pin=Pin.GPIO31)
+        sensor.set_callback(lambda: print("obstacle!"))
+        sensor.monitor_polling(interval_ms=200)
+
+    Args:
+        pin:  GPIO pin number, default GPIO31
+        pull: pull-up/down config, default pull-up (Pin.PULL_PU)
     """
 
     def __init__(self, pin=Pin.GPIO31, pull=Pin.PULL_PU):
-        """Initialize obstacle sensor instance.
+        self._gpio = Pin(pin, Pin.IN, pull)
+        self._extint = None
+        self._obstacle_flag = False
+        self._callback = None
+        self._trigger_count = 0
+
+    def set_callback(self, callback):
+        """Set obstacle detection callback.
 
         Args:
-            pin: GPIO pin number, defaults to GPIO31
-            pull: Pull-up/down config, defaults to pull-up (Pin.PULL_PU)
+            callback: function with no arguments, pass None to clear
         """
-        self.gpio = Pin(pin, Pin.IN, pull)
-        self.obstacle_flag = False
-        self._extint = None
+        self._callback = callback
 
     def read_state(self):
-        """Read current sensor state."""
-        return self.gpio.read()
+        """Read current sensor state.
+
+        Returns:
+            int: 0=obstacle, 1=clear
+        """
+        return self._gpio.read()
 
     def is_obstacle(self):
-        """Check if obstacle is currently detected."""
+        """Check if obstacle is currently detected.
+
+        Returns:
+            bool: True if obstacle detected
+        """
         return self.read_state() == 0
 
     def _irq_handler(self, args):
         """Interrupt callback, sets flag when obstacle detected."""
-        if self.gpio.read() == 0:
-            self.obstacle_flag = True
+        if self._gpio.read() == 0:
+            self._obstacle_flag = True
+
+    @property
+    def trigger_count(self):
+        """Get cumulative trigger count."""
+        return self._trigger_count
+
+    def reset_count(self):
+        """Reset trigger count to zero."""
+        self._trigger_count = 0
+
+    def wait_for_obstacle(self, timeout_ms=None):
+        """Block and wait for obstacle.
+
+        Args:
+            timeout_ms: timeout in ms, None for infinite
+
+        Returns:
+            bool: True=obstacle, False=timeout
+        """
+        start = utime.ticks_ms()
+        while True:
+            if self.is_obstacle():
+                return True
+            if timeout_ms is not None:
+                if utime.ticks_diff(utime.ticks_ms(), start) >= timeout_ms:
+                    return False
+            utime.sleep_ms(10)
+
+    def wait_for_clear(self, timeout_ms=None):
+        """Block and wait for obstacle to clear.
+
+        Args:
+            timeout_ms: timeout in ms, None for infinite
+
+        Returns:
+            bool: True=cleared, False=timeout
+        """
+        start = utime.ticks_ms()
+        while True:
+            if not self.is_obstacle():
+                return True
+            if timeout_ms is not None:
+                if utime.ticks_diff(utime.ticks_ms(), start) >= timeout_ms:
+                    return False
+            utime.sleep_ms(10)
 
     def monitor_polling(self, interval_ms=200):
         """Polling mode: continuously reads sensor state.
 
-        Suitable for scenarios with low real-time requirements, such as limit detection.
+        Args:
+            interval_ms: polling interval in ms, default 200
         """
         print("[ObstacleSensor] Polling mode started")
         while True:
             if self.is_obstacle():
+                self._trigger_count += 1
                 print("Obstacle detected")
-            else:
-                print("No obstacle")
+                if self._callback:
+                    self._callback()
             utime.sleep_ms(interval_ms)
 
     def monitor_interrupt(self, interval_ms=200):
         """Interrupt mode: obstacle triggers interrupt, main loop checks flag.
 
-        Suitable for fast-response scenarios, such as robot obstacle avoidance.
+        Args:
+            interval_ms: check interval in ms, default 200
         """
-        self._extint = ExtInt(self.gpio, ExtInt.IRQ_FALLING, Pin.PULL_PU, self._irq_handler)
+        self._extint = ExtInt(self._gpio, ExtInt.IRQ_FALLING, Pin.PULL_PU, self._irq_handler)
         self._extint.enable()
         print("[ObstacleSensor] Interrupt mode started")
         while True:
-            if self.obstacle_flag:
+            if self._obstacle_flag:
+                self._trigger_count += 1
                 print("Obstacle detected")
-                self.obstacle_flag = False
-            else:
-                print("No obstacle")
+                self._obstacle_flag = False
+                if self._callback:
+                    self._callback()
             utime.sleep_ms(interval_ms)
 
 
 if __name__ == '__main__':
     sensor = ObstacleSensor(pin=Pin.GPIO31)
-
-    # Polling mode
     sensor.monitor_polling(interval_ms=200)
-
-    # Interrupt mode (uncomment to switch)
-    # sensor.monitor_interrupt(interval_ms=200)
 ```
 
  
