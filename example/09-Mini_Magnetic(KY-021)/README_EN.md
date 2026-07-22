@@ -34,66 +34,105 @@ import utime
 class MiniMagneticController(object):
     """Mini magnetic sensor control class, magnetic field detection + output linkage.
 
-    Application scenarios: door magnet triggers output linkage, driving warning lights, buzzers or relays.
+    Example:
+        ctrl = MiniMagneticController(sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30)
+        ctrl.set_callback(lambda t: print("triggered!" if t else "released"))
+        ctrl.monitor()
+
+    Args:
+        sensor_pin:         sensor input GPIO, default GPIO31
+        output_pin:         linkage output GPIO, default GPIO30, pass None to disable
+        trigger_level:      trigger level, 0=low-trigger, 1=high-trigger, default 0
+        output_active_level: output active level, default 1 (high-active)
     """
 
-    def __init__(
-        self,
-        sensor_pin=Pin.GPIO31,
-        output_pin=Pin.GPIO30,
-        trigger_level=0,
-        output_active_level=1,
-    ):
-        """Initialize magnetic sensor controller.
+    def __init__(self, sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30,
+                 trigger_level=0, output_active_level=1):
+        self._sensor = Pin(sensor_pin, Pin.IN, Pin.PULL_PU)
+        self._output = None
+        if output_pin is not None:
+            self._output = Pin(output_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self._trigger_level = trigger_level
+        self._output_active = output_active_level
+        self._output_inactive = 0 if output_active_level else 1
+        self._last_state = self._sensor.read()
+        self._callback = None
+        self._trigger_count = 0
+
+    def set_callback(self, callback):
+        """Set state change callback.
 
         Args:
-            sensor_pin: Sensor input GPIO pin number, defaults to GPIO31
-            output_pin: Linkage output GPIO pin number, defaults to GPIO30
-            trigger_level: Trigger level, 0 = low level trigger, 1 = high level trigger, defaults to 0
-            output_active_level: Output active level, defaults to 1 (high level active)
+            callback: function with signature callback(is_triggered)
         """
-        self.sensor = Pin(sensor_pin, Pin.IN, Pin.PULL_PU)
-        self.output = Pin(output_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
-        self.trigger_level = trigger_level
-        self.output_active_level = output_active_level
-        self.output_inactive_level = 0 if output_active_level else 1
-        self.last_state = self.sensor.read()
+        self._callback = callback
 
     def read_sensor(self):
         """Read current sensor level state."""
-        return self.sensor.read()
+        return self._sensor.read()
 
     def is_triggered(self):
         """Check if currently in triggered state."""
-        return self.read_sensor() == self.trigger_level
+        return self.read_sensor() == self._trigger_level
 
     def set_output(self, active):
-        """Control linkage output pin level, can drive LED, buzzer, relay, etc."""
-        level = self.output_active_level if active else self.output_inactive_level
-        self.output.write(level)
+        """Control linkage output pin level."""
+        if self._output is not None:
+            level = self._output_active if active else self._output_inactive
+            self._output.write(level)
 
-    def update(self):
-        """Update linkage output based on sensor state and return state change info."""
+    @property
+    def trigger_count(self):
+        """Get cumulative trigger count."""
+        return self._trigger_count
+
+    def reset_count(self):
+        """Reset trigger count to zero."""
+        self._trigger_count = 0
+
+    def wait_for_trigger(self, timeout_ms=None):
+        """Block and wait for magnetic trigger.
+
+        Args:
+            timeout_ms: timeout in ms, None for infinite
+
+        Returns:
+            bool: True=triggered, False=timeout
+        """
+        start = utime.ticks_ms()
+        while True:
+            changed, triggered = self._check_state()
+            if changed and triggered:
+                return True
+            if timeout_ms is not None:
+                if utime.ticks_diff(utime.ticks_ms(), start) >= timeout_ms:
+                    return False
+            utime.sleep_ms(10)
+
+    def _check_state(self):
+        """Detect state change, update output and count."""
         state = self.read_sensor()
-        triggered = state == self.trigger_level
+        triggered = state == self._trigger_level
         self.set_output(triggered)
-
-        if triggered:
-            print("Magnetic field change detected")
-        else:
-            print("No magnetic field change detected")
-
-        changed = state != self.last_state
-        self.last_state = state
+        changed = state != self._last_state
+        if changed and triggered:
+            self._trigger_count += 1
+            if self._callback:
+                self._callback(True)
+        elif changed and not triggered:
+            if self._callback:
+                self._callback(False)
+        self._last_state = state
         return changed, triggered
 
     def monitor(self, interval_sec=1):
-        """Polling monitor loop, detects magnetic field state and controls output linkage.
+        """Polling monitor loop, detects magnetic field and controls output.
 
-        Application scenarios: access control status indication and intrusion detection, etc.
+        Args:
+            interval_sec: polling interval in seconds, default 1s
         """
         while True:
-            changed, triggered = self.update()
+            changed, triggered = self._check_state()
             if changed:
                 if triggered:
                     print("[MiniMagnetic] Trigger event")
@@ -104,10 +143,8 @@ class MiniMagneticController(object):
 
 if __name__ == '__main__':
     controller = MiniMagneticController(
-        sensor_pin=Pin.GPIO31,
-        output_pin=Pin.GPIO30,
-        trigger_level=0,
-        output_active_level=1,
+        sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30,
+        trigger_level=0, output_active_level=1,
     )
     controller.monitor()
 ```

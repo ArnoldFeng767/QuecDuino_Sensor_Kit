@@ -56,32 +56,58 @@ class ActiveBuzzer(object):
     The active_level parameter adapts to different trigger modes:
         - active_level=1: High level trigger (default)
         - active_level=0: Low level trigger (this hardware module uses low level trigger)
+
+    Example:
+        buzzer = ActiveBuzzer(pin=Pin.GPIO31, active_level=0)
+        buzzer.beep(duration_ms=200)
+        buzzer.beep_pattern([(200, 100), (500, 200), (200, 100)])
+
+    Args:
+        pin:          GPIO pin number, default GPIO31
+        active_level: trigger level, 1=high-active, 0=low-active, default 1
     """
 
     def __init__(self, pin=Pin.GPIO31, active_level=1):
-        """Initialize active buzzer instance.
-
-        Args:
-            pin: GPIO pin number, defaults to GPIO31
-            active_level: Trigger level, 1 = high level trigger, 0 = low level trigger, defaults to 1
-        """
-        self.active_level = active_level
-        self.inactive_level = 0 if active_level else 1
-        self.gpio = Pin(pin, Pin.OUT, Pin.PULL_DISABLE, self.inactive_level)
+        self._active_level = active_level
+        self._inactive_level = 0 if active_level else 1
+        self._gpio = Pin(pin, Pin.OUT, Pin.PULL_DISABLE, self._inactive_level)
+        self._state = 0
 
     def on(self):
-        """Turn on buzzer (output trigger level)."""
-        self.gpio.write(self.active_level)
+        """Turn on buzzer (output active level)."""
+        self._state = 1
+        self._gpio.write(self._active_level)
 
     def off(self):
         """Turn off buzzer (output inactive level)."""
-        self.gpio.write(self.inactive_level)
+        self._state = 0
+        self._gpio.write(self._inactive_level)
+
+    def toggle(self):
+        """Toggle buzzer state (on→off, off→on)."""
+        self.off() if self._state else self.on()
+
+    def is_on(self):
+        """Check if buzzer is currently sounding.
+
+        Returns:
+            bool: True if sounding
+        """
+        return self._state == 1
+
+    def read(self):
+        """Read current logical state.
+
+        Returns:
+            int: 1=on, 0=off
+        """
+        return self._state
 
     def beep(self, duration_ms=200):
-        """Beep once.
+        """Beep once (blocking).
 
         Args:
-            duration_ms: Beep duration in milliseconds, defaults to 200ms
+            duration_ms: beep duration in milliseconds, default 200ms
         """
         self.on()
         utime.sleep_ms(duration_ms)
@@ -91,20 +117,40 @@ class ActiveBuzzer(object):
         """Beep multiple times.
 
         Args:
-            times: Number of beeps, defaults to 3
-            duration_ms: Beep duration in milliseconds, defaults to 200ms
-            interval_ms: Interval between beeps in milliseconds, defaults to 200ms
+            times:        number of beeps, default 3
+            duration_ms:  beep duration in ms, default 200ms
+            interval_ms:  interval between beeps in ms, default 200ms
         """
         for _ in range(times):
             self.beep(duration_ms)
             utime.sleep_ms(interval_ms)
 
+    def beep_pattern(self, pattern, repeat=1):
+        """Beep in a custom rhythm pattern.
+
+        Args:
+            pattern: [(on_ms, off_ms), ...] rhythm list
+            repeat:  repeat count, default 1
+
+        Example:
+            # SOS pattern: three short, three long, three short
+            buzzer.beep_pattern([(100,100), (100,100), (100,300),
+                                 (300,100), (300,100), (300,300),
+                                 (100,100), (100,100), (100,500)])
+        """
+        for _ in range(repeat):
+            for on_ms, off_ms in pattern:
+                self.on()
+                utime.sleep_ms(on_ms)
+                self.off()
+                utime.sleep_ms(off_ms)
+
 
 if __name__ == '__main__':
-    active_buzzer = ActiveBuzzer(pin=Pin.GPIO31, active_level=1)
-    # Beep 15 times, 300ms each, 300ms interval
-    active_buzzer.beep_times(times=15, duration_ms=300, interval_ms=300)
-    utime.sleep_ms(1000)
+    buzzer = ActiveBuzzer(pin=Pin.GPIO31, active_level=1)
+    buzzer.beep_times(times=3, duration_ms=200, interval_ms=200)
+    utime.sleep_ms(500)
+    buzzer.beep_pattern([(100, 100), (300, 300), (100, 100)])
 ```
 
  

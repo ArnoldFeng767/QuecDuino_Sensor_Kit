@@ -28,73 +28,118 @@ import utime
 
 
 class Mic(object):
-    """Microphone sensor class, reads sound intensity via ADC, lights LED when threshold is exceeded."""
+    """Microphone sensor class, reads sound intensity via ADC with threshold trigger and callback.
 
-    def __init__(self, adc_channel=None, led_pin=Pin.GPIO31, threshold=200, sample_ms=500, led_on_sec=2):
-        """Initialize microphone instance.
+    Example:
+        mic = Mic(led_pin=Pin.GPIO31, threshold=200)
+        mic.set_callback(lambda val: print("loud!", val))
+        mic.start()
+
+    Args:
+        adc_channel: ADC channel, default ADC1
+        led_pin:     LED indicator GPIO pin, default GPIO31, pass None to disable
+        threshold:   sound intensity threshold, default 200
+        sample_ms:   sampling interval in ms, default 500
+        led_on_ms:   LED on duration in ms, default 500 (non-blocking)
+    """
+
+    def __init__(self, adc_channel=None, led_pin=Pin.GPIO31,
+                 threshold=200, sample_ms=500, led_on_ms=500):
+        self._threshold = threshold
+        self._sample_ms = sample_ms
+        self._led_on_ms = led_on_ms
+        self._led = None
+        if led_pin is not None:
+            self._led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self._adc = ADC()
+        self._adc_channel = self._adc.ADC1 if adc_channel is None else adc_channel
+        self._callback = None
+        self._is_running = False
+        self._last_value = 0
+        self._led_off_at = 0
+
+    def set_callback(self, callback):
+        """Set sound trigger callback.
 
         Args:
-            adc_channel: ADC channel, defaults to ADC1
-            led_pin: LED indicator GPIO pin number, defaults to GPIO31
-            threshold: Sound intensity threshold to trigger LED, defaults to 200
-            sample_ms: Sampling interval in milliseconds, defaults to 500ms
-            led_on_sec: LED on duration in seconds, defaults to 2s
+            callback: callback function, signature callback(value), pass None to clear
         """
-        self.threshold = threshold
-        self.sample_ms = sample_ms
-        self.led_on_sec = led_on_sec
-        self.led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
-        self.adc = ADC()
-        self.adc_channel = self.adc.ADC1 if adc_channel is None else adc_channel
-        self.is_running = False
+        self._callback = callback
 
-    def open(self):
-        """Open ADC channel."""
-        self.adc.open()
+    @property
+    def threshold(self):
+        """Current trigger threshold."""
+        return self._threshold
+
+    @threshold.setter
+    def threshold(self, value):
+        """Change threshold at runtime."""
+        self._threshold = value
 
     def read_value(self):
-        """Read current sound intensity ADC value."""
-        return self.adc.read(self.adc_channel)
+        """Read current sound intensity ADC value.
 
-    def handle_sound(self, value):
-        """Handle sound detection, light LED when threshold is exceeded.
-
-        Note: Blocks the current thread for led_on_sec seconds while LED is on.
+        Returns:
+            int: ADC reading
         """
-        if value > self.threshold:
-            self.led.write(1)
-            utime.sleep(self.led_on_sec)
-            self.led.write(0)
+        self._last_value = self._adc.read(self._adc_channel)
+        return self._last_value
 
-    def monitor(self):
-        """Background monitoring loop, continuously samples and handles sound events."""
-        self.is_running = True
-        while self.is_running:
+    def is_detected(self):
+        """Check if last sample exceeded threshold.
+
+        Returns:
+            bool: True if sound detected
+        """
+        return self._last_value > self._threshold
+
+    def _led_on(self):
+        """Turn LED on (non-blocking)."""
+        if self._led is not None:
+            self._led.write(1)
+            self._led_off_at = utime.ticks_ms() + self._led_on_ms
+
+    def _led_tick(self):
+        """Check if LED should be turned off."""
+        if self._led is not None and self._led_off_at > 0:
+            if utime.ticks_diff(utime.ticks_ms(), self._led_off_at) >= 0:
+                self._led.write(0)
+                self._led_off_at = 0
+
+    def _monitor(self):
+        """Background monitoring loop, non-blocking sampling with callback and LED."""
+        while self._is_running:
             value = self.read_value()
-            print(value)
-            self.handle_sound(value)
-            utime.sleep_ms(self.sample_ms)
+
+            if value > self._threshold:
+                self._led_on()
+                if self._callback:
+                    self._callback(value)
+
+            self._led_tick()
+            utime.sleep_ms(self._sample_ms)
 
     def start(self):
-        """Start background sampling thread."""
-        self.open()
-        _thread.start_new_thread(self.monitor, ())
+        """Open ADC and start background monitoring thread."""
+        self._adc.open()
+        self._is_running = True
+        _thread.start_new_thread(self._monitor, ())
 
     def stop(self):
-        """Stop background sampling thread."""
-        self.is_running = False
+        """Stop monitoring thread and turn off LED."""
+        self._is_running = False
+        if self._led is not None:
+            self._led.write(0)
 
 
 if __name__ == '__main__':
-    mic = Mic(
-        led_pin=Pin.GPIO31,
-        threshold=200,
-        sample_ms=500,
-        led_on_sec=2,
-    )
+    def on_sound(value):
+        print("Sound detected! ADC = {}".format(value))
+
+    mic = Mic(led_pin=Pin.GPIO31, threshold=200, sample_ms=500, led_on_ms=500)
+    mic.set_callback(on_sound)
     mic.start()
 
-    # Keep main thread alive
     while True:
         utime.sleep_ms(1000)
 ```

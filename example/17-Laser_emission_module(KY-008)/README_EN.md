@@ -26,56 +26,65 @@ import utime
 class LaserEmitter(object):
     """Laser emitter control class, controls laser on/off and blinking via GPIO.
 
-    Adapts to different trigger modes via the active_level parameter.
-    Application scenarios: laser indication, alignment assistance,
-    security warning, etc.
+    Adapts to different trigger modes via active_level.
+
+    Example:
+        laser = LaserEmitter(pin=Pin.GPIO31)
+        laser.on()
+        laser.blink(interval=0.5, times=3)
+
+    Args:
+        pin:          GPIO pin number, default GPIO31
+        active_level: 1=high-active, 0=low-active, default 1
     """
 
     def __init__(self, pin=Pin.GPIO31, active_level=1):
-        """Initialize laser emitter instance.
-
-        Args:
-            pin: GPIO pin number, default GPIO31
-            active_level: Trigger level, 1 = high level trigger,
-                0 = low level trigger, default 1
-        """
-        self.active_level = active_level
-        self.inactive_level = 0 if active_level else 1
-        self.gpio = Pin(pin, Pin.OUT, Pin.PULL_DISABLE, self.inactive_level)
+        self._active_level = active_level
+        self._inactive_level = 0 if active_level else 1
+        self._gpio = Pin(pin, Pin.OUT, Pin.PULL_DISABLE, self._inactive_level)
+        self._state = 0
 
     def on(self):
         """Turn on the laser."""
-        self.gpio.write(self.active_level)
-        print("Laser on")
+        self._state = 1
+        self._gpio.write(self._active_level)
 
     def off(self):
         """Turn off the laser."""
-        self.gpio.write(self.inactive_level)
-        print("Laser off")
+        self._state = 0
+        self._gpio.write(self._inactive_level)
 
-    def blink(self, interval=2):
-        """Blink the laser once (on -> off).
+    def toggle(self):
+        """Toggle laser state (on->off, off->on)."""
+        self.off() if self._state else self.on()
+
+    def is_on(self):
+        """Check if laser is on."""
+        return self._state == 1
+
+    def read(self):
+        """Read logical state (1=on, 0=off)."""
+        return self._state
+
+    def blink(self, interval=0.5, times=None):
+        """Blink the laser.
 
         Args:
-            interval: On/off interval in seconds, default 2 seconds
+            interval: half-cycle duration in seconds, default 0.5s
+            times:    number of blink cycles, None for infinite
         """
-        self.on()
-        utime.sleep(interval)
-        self.off()
-        utime.sleep(interval)
-
-    def demo(self, interval=2):
-        """Demo loop, continuous blinking.
-
-        Args:
-            interval: Blink interval in seconds, default 2 seconds
-        """
-        while True:
-            self.blink(interval)
+        n = 0
+        while times is None or n < times:
+            self.on()
+            utime.sleep(interval)
+            self.off()
+            utime.sleep(interval)
+            n += 1
 
 
 if __name__ == '__main__':
     laser = LaserEmitter(pin=Pin.GPIO31, active_level=1)
-    laser.demo(interval=2)
+    laser.blink(interval=0.5, times=3)
+    laser.off()
 ```
 

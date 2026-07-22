@@ -29,112 +29,158 @@ import utime
 
 
 class WaterLevelSensor(object):
-    """Water level sensor class, reads voltage via ADC and converts to water level, supports tiered alerts.
-
-    Application scenarios: tank level monitoring, leak detection, flood warning, etc.
-    Three-tier status indication via warn_level and alert_level thresholds.
+    """Water level sensor class, reads voltage via ADC and converts to water level, supports tiered alerts and callback.
 
     Status levels:
-        - Normal: level < warn_level
-        - Warning: warn_level <= level < alert_level
-        - Alert: level >= alert_level
+        STATUS_NORMAL  (0): Normal
+        STATUS_WARNING (1): Warning
+        STATUS_ALERT   (2): Alert
+
+    Example:
+        sensor = WaterLevelSensor(warn_level=15, alert_level=35)
+        sensor.set_callback(lambda lvl, st, lbl: print(lbl))
+        sensor.start()
+
+    Args:
+        adc_channel:       ADC channel, default ADC1
+        ref_voltage:       reference voltage in mV, default 3300 (3.3V)
+        max_water_level:   sensor max range in mm, default 60
+        warn_level:        warning threshold in mm, default 15
+        alert_level:       alert threshold in mm, default 35
+        sample_count:      samples per reading for noise reduction, default 10
+        sample_interval_ms: sampling interval in ms, default 5
     """
+
+    STATUS_NORMAL = 0
+    STATUS_WARNING = 1
+    STATUS_ALERT = 2
+
+    _STATUS_LABELS = {0: "Normal", 1: "Warning", 2: "Alert"}
 
     def __init__(self, adc_channel=None, ref_voltage=3300, max_water_level=60,
                  warn_level=15, alert_level=35,
                  sample_count=10, sample_interval_ms=5):
-        """Initialize water level sensor instance.
+        self._adc = ADC()
+        self._adc_channel = self._adc.ADC1 if adc_channel is None else adc_channel
+        self._ref_voltage = ref_voltage
+        self._max_water_level = max_water_level
+        self._warn_level = warn_level
+        self._alert_level = alert_level
+        self._sample_count = sample_count
+        self._sample_interval_ms = sample_interval_ms
+        self._callback = None
+        self._is_running = False
+
+    def set_callback(self, callback):
+        """Set status change callback.
 
         Args:
-            adc_channel: ADC channel, defaults to ADC1
-            ref_voltage: Reference voltage in mV, defaults to 3300mV (3.3V)
-            max_water_level: Sensor max range in mm, defaults to 60mm
-            warn_level: Warning threshold in mm, defaults to 15mm
-            alert_level: Alert threshold in mm, defaults to 35mm
-            sample_count: Number of samples per reading for noise reduction, defaults to 10
-            sample_interval_ms: Sampling interval in ms, defaults to 5ms
+            callback: function with signature callback(level_mm, status_code, status_label)
         """
-        self.adc = ADC()
-        self.adc_channel = self.adc.ADC1 if adc_channel is None else adc_channel
-        self.ref_voltage = ref_voltage
-        self.max_water_level = max_water_level
-        self.warn_level = warn_level
-        self.alert_level = alert_level
-        self.sample_count = sample_count
-        self.sample_interval_ms = sample_interval_ms
-        self.is_running = False
+        self._callback = callback
 
-    def open(self):
-        """Open ADC channel."""
-        self.adc.open()
+    @property
+    def warn_level(self):
+        return self._warn_level
+
+    @warn_level.setter
+    def warn_level(self, value):
+        self._warn_level = value
+
+    @property
+    def alert_level(self):
+        return self._alert_level
+
+    @alert_level.setter
+    def alert_level(self, value):
+        self._alert_level = value
 
     def read_voltage(self):
-        """Average multiple samples to reduce ADC noise."""
+        """Average multiple samples to reduce ADC noise.
+
+        Returns:
+            float: averaged ADC value
+        """
         adc_sum = 0
-        for _ in range(self.sample_count):
-            adc_sum += self.adc.read(self.adc_channel)
-            utime.sleep_ms(self.sample_interval_ms)
-        return adc_sum / self.sample_count
+        for _ in range(self._sample_count):
+            adc_sum += self._adc.read(self._adc_channel)
+            utime.sleep_ms(self._sample_interval_ms)
+        return adc_sum / self._sample_count
 
     def read_level(self):
-        """Read voltage and convert to water level.
+        """Read voltage and convert to water level (single-shot, no monitor needed).
 
         Formula: level = (voltage / ref_voltage) * max_water_level
-        Note: Assumes linear voltage-level relationship. Calibrate with actual sensor curve in production.
+
+        Returns:
+            tuple: (voltage, level_mm)
         """
         voltage_avg = self.read_voltage()
-        water_level = (voltage_avg / self.ref_voltage) * self.max_water_level
+        water_level = (voltage_avg / self._ref_voltage) * self._max_water_level
         return voltage_avg, round(water_level, 2)
 
     def check_status(self, level):
-        """Determine status based on water level.
-
-        Application scenarios: tank level monitoring, leak alarm, flood warning, etc.
+        """Determine status code from water level.
 
         Args:
-            level: Water level in mm
+            level: water level in mm
 
         Returns:
-            str: Status description ("Normal" / "Warning" / "Alert")
+            int: STATUS_NORMAL / STATUS_WARNING / STATUS_ALERT
         """
-        if level < self.warn_level:
-            return "Normal"
-        elif level < self.alert_level:
-            return "Warning"
+        if level < self._warn_level:
+            return self.STATUS_NORMAL
+        elif level < self._alert_level:
+            return self.STATUS_WARNING
         else:
-            return "Alert"
+            return self.STATUS_ALERT
 
-    def monitor(self, interval_sec=1):
-        """Background monitoring loop, continuously samples and outputs level with status."""
-        self.is_running = True
-        while self.is_running:
+    @classmethod
+    def status_label(cls, status_code):
+        """Get label for a status code."""
+        return cls._STATUS_LABELS.get(status_code, "Unknown")
+
+    def _monitor(self, interval_sec):
+        """Background monitoring loop."""
+        while self._is_running:
             voltage, level = self.read_level()
             status = self.check_status(level)
-            print("Level: {:.2f} mm | Voltage: {:.1f} | Status: {}".format(level, voltage, status))
+            label = self.status_label(status)
+            print("Level: {:.2f} mm | Voltage: {:.1f} | Status: {}".format(level, voltage, label))
+
+            if self._callback:
+                self._callback(level, status, label)
+
             utime.sleep(interval_sec)
 
     def start(self, interval_sec=1):
-        """Start background monitoring thread."""
-        self.open()
-        _thread.start_new_thread(self.monitor, (interval_sec,))
+        """Open ADC and start background monitoring thread.
+
+        Args:
+            interval_sec: monitoring interval in seconds, default 1s
+        """
+        self._adc.open()
+        self._is_running = True
+        _thread.start_new_thread(self._monitor, (interval_sec,))
 
     def stop(self):
         """Stop background monitoring thread."""
-        self.is_running = False
+        self._is_running = False
 
 
 if __name__ == '__main__':
-    water_sensor = WaterLevelSensor(
-        ref_voltage=3300,
-        max_water_level=60,
-        warn_level=15,
-        alert_level=35,
-        sample_count=10,
-        sample_interval_ms=5,
-    )
-    water_sensor.start(interval_sec=1)
+    def on_status(level, status, label):
+        if status == WaterLevelSensor.STATUS_ALERT:
+            print("!!! High water level alert !!!")
 
-    # Keep main thread alive
+    sensor = WaterLevelSensor(
+        ref_voltage=3300, max_water_level=60,
+        warn_level=15, alert_level=35,
+        sample_count=10, sample_interval_ms=5,
+    )
+    sensor.set_callback(on_status)
+    sensor.start(interval_sec=1)
+
     while True:
         utime.sleep_ms(1000)
 ```

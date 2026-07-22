@@ -26,63 +26,93 @@ import utime
 class MercurySwitch(object):
     """Mercury switch sensor class, detects tilt state and controls linked output.
 
-    Application scenarios: tip-over alarm, fall detection, anti-theft devices, etc.
-    The mercury switch conducts when tilted to a certain angle, outputting the trigger level.
+    Example:
+        sw = MercurySwitch(sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30)
+        sw.set_callback(lambda t: print("tilted!" if t else "normal"))
+        sw.monitor()
+
+    Args:
+        sensor_pin:   sensor input GPIO, default GPIO31
+        output_pin:   linked output GPIO, default GPIO30, pass None to disable
+        trigger_level: 1=high-trigger, 0=low-trigger, default 1
+        pull:          pull config, default pull-up (Pin.PULL_PU)
     """
 
     def __init__(self, sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1, pull=Pin.PULL_PU):
-        """Initialize mercury switch sensor instance.
+        self._sensor = Pin(sensor_pin, Pin.IN, pull)
+        self._output = None
+        if output_pin is not None:
+            self._output = Pin(output_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self._trigger_level = trigger_level
+        self._last_state = self._sensor.read()
+        self._callback = None
+        self._trigger_count = 0
 
-        Args:
-            sensor_pin: Sensor input GPIO pin number, default GPIO31
-            output_pin: Linked output GPIO pin number, default GPIO30
-            trigger_level: Trigger level, 1 = high level trigger,
-                0 = low level trigger, default 1
-            pull: Pull-up/down configuration, default pull-up (Pin.PULL_PU)
-        """
-        self.sensor = Pin(sensor_pin, Pin.IN, pull)
-        self.output = Pin(output_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
-        self.trigger_level = trigger_level
+    def set_callback(self, callback):
+        """Set state change callback. callback(is_triggered)"""
+        self._callback = callback
 
     def read_state(self):
-        """Read the current level state of the sensor.
-
-        Returns:
-            int: 0 or 1
-        """
-        return self.sensor.read()
+        """Read the current level state of the sensor."""
+        return self._sensor.read()
 
     def is_triggered(self):
-        """Check whether currently in triggered state (tilt detected).
+        """Check whether currently in triggered state."""
+        return self.read_state() == self._trigger_level
 
-        Returns:
-            bool: True means triggered
-        """
-        return self.read_state() == self.trigger_level
+    def set_output(self, active):
+        """Control linked output pin."""
+        if self._output is not None:
+            self._output.write(1 if active else 0)
 
-    def update(self):
-        """Update linked output based on tilt state."""
-        if self.is_triggered():
-            self.output.write(1)
-            print("Mercury switch detected tilt")
-        else:
-            self.output.write(0)
-            print("Mercury switch no tilt detected")
+    @property
+    def trigger_count(self):
+        """Get cumulative trigger count."""
+        return self._trigger_count
+
+    def reset_count(self):
+        """Reset trigger count to zero."""
+        self._trigger_count = 0
+
+    def wait_for_trigger(self, timeout_ms=None):
+        """Block and wait for tilt trigger."""
+        start = utime.ticks_ms()
+        while True:
+            changed, triggered = self._check_state()
+            if changed and triggered:
+                return True
+            if timeout_ms is not None:
+                if utime.ticks_diff(utime.ticks_ms(), start) >= timeout_ms:
+                    return False
+            utime.sleep_ms(10)
+
+    def _check_state(self):
+        state = self.read_state()
+        triggered = state == self._trigger_level
+        self.set_output(triggered)
+        changed = state != self._last_state
+        if changed and triggered:
+            self._trigger_count += 1
+            if self._callback:
+                self._callback(True)
+        elif changed and not triggered:
+            if self._callback:
+                self._callback(False)
+        self._last_state = state
+        return changed, triggered
 
     def monitor(self, interval_sec=1):
-        """Polling monitor loop, detect tilt state and control linked output.
-
-        Args:
-            interval_sec: Polling interval in seconds, default 1 second
-        """
+        """Polling monitor loop."""
         while True:
-            self.update()
+            changed, triggered = self._check_state()
+            if changed:
+                print("Mercury switch detected tilt" if triggered else "Mercury switch no tilt detected")
             utime.sleep(interval_sec)
 
 
 if __name__ == '__main__':
-    mercury = MercurySwitch(sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1, pull=Pin.PULL_PU)
-    mercury.monitor(interval_sec=1)
+    sw = MercurySwitch(sensor_pin=Pin.GPIO31, output_pin=Pin.GPIO30, trigger_level=1, pull=Pin.PULL_PU)
+    sw.monitor(interval_sec=1)
 ```
 
  

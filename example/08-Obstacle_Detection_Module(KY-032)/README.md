@@ -38,71 +38,134 @@ class ObstacleSensor(object):
         - 无障碍物时 OUT 输出高电平 (1)
         - 检测到障碍物时 OUT 输出低电平 (0)
 
-    应用场景：智能小车避障、自动门感应、限位检测、智能垃圾桶等。
+    典型用法:
+        sensor = ObstacleSensor(pin=Pin.GPIO31)
+        sensor.set_callback(lambda: print("障碍物!"))
+        sensor.monitor_polling(interval_ms=200)
+
+    Args:
+        pin:  GPIO 引脚号，默认 GPIO31
+        pull: 上下拉配置，默认上拉 (Pin.PULL_PU)
     """
 
     def __init__(self, pin=Pin.GPIO31, pull=Pin.PULL_PU):
-        """初始化避障传感器实例。
+        self._gpio = Pin(pin, Pin.IN, pull)
+        self._extint = None
+        self._obstacle_flag = False
+        self._callback = None
+        self._trigger_count = 0
+
+    def set_callback(self, callback):
+        """设置障碍物检测回调。
 
         Args:
-            pin: GPIO 引脚号，默认 GPIO31
-            pull: 上下拉配置，默认上拉 (Pin.PULL_PU)
+            callback: 回调函数，无参数，传 None 取消
         """
-        self.gpio = Pin(pin, Pin.IN, pull)
-        self.obstacle_flag = False
-        self._extint = None
+        self._callback = callback
 
     def read_state(self):
-        """读取当前传感器状态。"""
-        return self.gpio.read()
+        """读取当前传感器状态。
+
+        Returns:
+            int: 0=有障碍物, 1=无障碍物
+        """
+        return self._gpio.read()
 
     def is_obstacle(self):
-        """判断当前是否有障碍物。"""
+        """判断当前是否有障碍物。
+
+        Returns:
+            bool: True 表示检测到障碍物
+        """
         return self.read_state() == 0
 
     def _irq_handler(self, args):
-        """中断回调函数，检测到障碍物时置位标志。"""
-        if self.gpio.read() == 0:
-            self.obstacle_flag = True
+        """中断回调，障碍物出现时置位标志。"""
+        if self._gpio.read() == 0:
+            self._obstacle_flag = True
+
+    @property
+    def trigger_count(self):
+        """获取累计触发次数。"""
+        return self._trigger_count
+
+    def reset_count(self):
+        """重置触发计数归零。"""
+        self._trigger_count = 0
+
+    def wait_for_obstacle(self, timeout_ms=None):
+        """阻塞等待障碍物出现。
+
+        Args:
+            timeout_ms: 超时 ms，None 无限等待
+
+        Returns:
+            bool: True=障碍物, False=超时
+        """
+        start = utime.ticks_ms()
+        while True:
+            if self.is_obstacle():
+                return True
+            if timeout_ms is not None:
+                if utime.ticks_diff(utime.ticks_ms(), start) >= timeout_ms:
+                    return False
+            utime.sleep_ms(10)
+
+    def wait_for_clear(self, timeout_ms=None):
+        """阻塞等待障碍物消失。
+
+        Args:
+            timeout_ms: 超时 ms，None 无限等待
+
+        Returns:
+            bool: True=已清除, False=超时
+        """
+        start = utime.ticks_ms()
+        while True:
+            if not self.is_obstacle():
+                return True
+            if timeout_ms is not None:
+                if utime.ticks_diff(utime.ticks_ms(), start) >= timeout_ms:
+                    return False
+            utime.sleep_ms(10)
 
     def monitor_polling(self, interval_ms=200):
         """轮询模式：循环读取传感器状态。
 
-        适用于对实时性要求不高的场景，如限位检测、定期巡检。
+        Args:
+            interval_ms: 轮询间隔 ms，默认 200
         """
         print("[ObstacleSensor] 轮询模式启动")
         while True:
             if self.is_obstacle():
+                self._trigger_count += 1
                 print("检测到障碍物")
-            else:
-                print("无障碍物")
+                if self._callback:
+                    self._callback()
             utime.sleep_ms(interval_ms)
 
     def monitor_interrupt(self, interval_ms=200):
-        """中断模式：障碍物出现时触发中断，主循环检查标志位。
+        """中断模式：障碍物触发中断，主循环检查标志。
 
-        适用于需要快速响应的场景，如智能小车避障。
+        Args:
+            interval_ms: 主循环检查间隔 ms，默认 200
         """
-        self._extint = ExtInt(self.gpio, ExtInt.IRQ_FALLING, Pin.PULL_PU, self._irq_handler)
+        self._extint = ExtInt(self._gpio, ExtInt.IRQ_FALLING, Pin.PULL_PU, self._irq_handler)
         self._extint.enable()
         print("[ObstacleSensor] 中断模式启动")
         while True:
-            if self.obstacle_flag:
+            if self._obstacle_flag:
+                self._trigger_count += 1
                 print("检测到障碍物")
-                self.obstacle_flag = False
-            else:
-                print("无障碍物")
+                self._obstacle_flag = False
+                if self._callback:
+                    self._callback()
             utime.sleep_ms(interval_ms)
 
 
 if __name__ == '__main__':
     sensor = ObstacleSensor(pin=Pin.GPIO31)
-
-    # 轮询模式
     sensor.monitor_polling(interval_ms=200)
-
-    # 中断模式（取消注释以切换）
-    # sensor.monitor_interrupt(interval_ms=200)
 ```
 
  

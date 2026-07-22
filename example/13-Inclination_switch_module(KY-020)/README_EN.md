@@ -28,45 +28,83 @@ import utime
 
 
 class InclinationSwitch(object):
-    """Tilt switch sensor class, detects tilt state via GPIO and controls LED indicator.
+    """Tilt switch sensor class, detects tilt state via GPIO and controls LED.
 
-    Application scenarios: tipping alarm, equipment posture detection, transportation vibration indication, etc.
+    Example:
+        sw = InclinationSwitch(pin=Pin.GPIO31, led_pin=Pin.GPIO32)
+        sw.set_callback(lambda t: print("tilted!" if t else "level"))
+        sw.monitor()
+
+    Args:
+        pin:          sensor input GPIO, default GPIO31
+        led_pin:      LED indicator GPIO, default GPIO32, pass None to disable
+        trigger_level: 0=low-trigger, 1=high-trigger, default 0
+        pull:          pull config, default pull-up (Pin.PULL_PU)
     """
 
     def __init__(self, pin=Pin.GPIO31, led_pin=Pin.GPIO32, trigger_level=0, pull=Pin.PULL_PU):
-        """Initialize tilt switch sensor instance.
+        self._gpio = Pin(pin, Pin.IN, pull)
+        self._led = None
+        if led_pin is not None:
+            self._led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self._trigger_level = trigger_level
+        self._last_state = self._gpio.read()
+        self._callback = None
+        self._trigger_count = 0
 
-        Args:
-            pin: Sensor input GPIO pin number, defaults to GPIO31
-            led_pin: LED indicator GPIO pin number, defaults to GPIO32
-            trigger_level: Trigger level, defaults to 0 (low level trigger)
-            pull: Pull-up/down config, defaults to pull-up (Pin.PULL_PU)
-        """
-        self.gpio = Pin(pin, Pin.IN, pull)
-        self.led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
-        self.trigger_level = trigger_level
+    def set_callback(self, callback):
+        """Set state change callback. callback(is_tilted)"""
+        self._callback = callback
 
     def read_state(self):
         """Read current sensor level state."""
-        return self.gpio.read()
+        return self._gpio.read()
 
     def is_tilted(self):
         """Check if currently in tilted state."""
-        return self.read_state() == self.trigger_level
+        return self.read_state() == self._trigger_level
 
-    def monitor(self, interval_sec=1):
-        """Polling monitor loop, detects tilt state and controls LED."""
+    def _update_led(self, tilted):
+        if self._led is not None:
+            self._led.write(1 if tilted else 0)
+
+    @property
+    def trigger_count(self):
+        """Get cumulative trigger count."""
+        return self._trigger_count
+
+    def reset_count(self):
+        """Reset trigger count to zero."""
+        self._trigger_count = 0
+
+    def wait_for_tilt(self, timeout_ms=None):
+        """Block and wait for tilt trigger."""
+        start = utime.ticks_ms()
         while True:
             if self.is_tilted():
-                self.led.write(1)
-                print("Tilt detected")
-            else:
-                self.led.write(0)
-                print("Level state")
+                return True
+            if timeout_ms is not None:
+                if utime.ticks_diff(utime.ticks_ms(), start) >= timeout_ms:
+                    return False
+            utime.sleep_ms(10)
+
+    def monitor(self, interval_sec=1):
+        """Polling monitor loop."""
+        while True:
+            tilted = self.is_tilted()
+            self._update_led(tilted)
+            changed = tilted != (self._last_state == self._trigger_level)
+            self._last_state = 1 if tilted else 0
+            if changed:
+                if tilted:
+                    self._trigger_count += 1
+                if self._callback:
+                    self._callback(tilted)
+                print("Tilt detected" if tilted else "Level state")
             utime.sleep(interval_sec)
 
 
 if __name__ == '__main__':
-    tilt_switch = InclinationSwitch(pin=Pin.GPIO31, led_pin=Pin.GPIO32, trigger_level=0, pull=Pin.PULL_PU)
-    tilt_switch.monitor(interval_sec=1)
+    sw = InclinationSwitch(pin=Pin.GPIO31, led_pin=Pin.GPIO32, trigger_level=0, pull=Pin.PULL_PU)
+    sw.monitor(interval_sec=1)
 ```

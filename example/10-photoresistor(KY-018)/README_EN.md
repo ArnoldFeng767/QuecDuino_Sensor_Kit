@@ -42,60 +42,103 @@ import utime
 class LightController(object):
     """Photoresistor controller class, reads light intensity via ADC and controls LED.
 
-    Sensor characteristic: stronger light = lower resistance = lower ADC value; weaker light = higher ADC value.
-    Application scenarios: automatic street light, smart lighting, ambient light detection, etc.
+    Sensor characteristic: stronger light → lower ADC value.
+
+    Example:
+        # Auto street light mode: LED on when dark
+        lc = LightController(led_pin=Pin.GPIO31, dark_threshold=200, led_mode='dark')
+        lc.start()
+
+    Args:
+        adc_channel:    ADC channel, default ADC1
+        led_pin:        LED GPIO pin, default GPIO31, pass None to disable
+        dark_threshold: ADC value above which is considered dark, default 200
+        led_mode:       'dark'=on when dark, 'bright'=on when bright, 'off'=no LED control
+        sample_ms:      sampling interval in ms, default 500
     """
 
-    def __init__(self, adc_channel=None, led_pin=Pin.GPIO31, sample_ms=500):
-        """Initialize photoresistor controller.
+    MODE_DARK = 'dark'
+    MODE_BRIGHT = 'bright'
+    MODE_OFF = 'off'
+
+    def __init__(self, adc_channel=None, led_pin=Pin.GPIO31,
+                 dark_threshold=200, led_mode='bright', sample_ms=500):
+        self._dark_threshold = dark_threshold
+        self._led_mode = led_mode
+        self._sample_ms = sample_ms
+        self._led = None
+        if led_pin is not None:
+            self._led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self._adc = ADC()
+        self._adc_channel = self._adc.ADC1 if adc_channel is None else adc_channel
+        self._callback = None
+        self._is_running = False
+        self._last_value = 0
+
+    def set_callback(self, callback):
+        """Set light change callback.
 
         Args:
-            adc_channel: ADC channel, defaults to ADC1
-            led_pin: LED indicator GPIO pin number, defaults to GPIO31
-            sample_ms: Sampling interval in milliseconds, defaults to 500ms
+            callback: function with signature callback(adc_value, is_dark)
         """
-        self.sample_ms = sample_ms
-        self.led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
-        self.adc = ADC()
-        self.adc_channel = self.adc.ADC1 if adc_channel is None else adc_channel
-        self.is_running = False
+        self._callback = callback
+
+    @property
+    def dark_threshold(self):
+        return self._dark_threshold
+
+    @dark_threshold.setter
+    def dark_threshold(self, value):
+        self._dark_threshold = value
+
+    def read_value(self):
+        """Read current light intensity ADC value."""
+        self._last_value = self._adc.read(self._adc_channel)
+        return self._last_value
+
+    def is_dark(self):
+        """Check if current environment is dark."""
+        return self._last_value > self._dark_threshold
+
+    def _update_led(self, value):
+        """Update LED based on led_mode."""
+        if self._led is None or self._led_mode == self.MODE_OFF:
+            return
+        dark = value > self._dark_threshold
+        if self._led_mode == self.MODE_DARK:
+            self._led.write(1 if dark else 0)
+        elif self._led_mode == self.MODE_BRIGHT:
+            self._led.write(0 if dark else 1)
+
+    def _monitor(self):
+        """Background monitoring loop."""
+        while self._is_running:
+            value = self.read_value()
+            dark = self.is_dark()
+            self._update_led(value)
+            print("Light: {} | {}".format(value, "Dark" if dark else "Bright"))
+            if self._callback:
+                self._callback(value, dark)
+            utime.sleep_ms(self._sample_ms)
 
     def start(self):
-        """Start ADC and launch background monitoring thread."""
-        self.adc.open()
-        self.is_running = True
-        _thread.start_new_thread(self.monitor, ())
-
-    def monitor(self):
-        """Background monitoring loop, reads light intensity and controls LED based on threshold.
-
-        Note: Current logic is for demo purposes (weak light → LED off, strong light → LED on).
-        For a real automatic street light scenario, reverse the logic: weak light → LED on, strong light → LED off.
-        """
-        while self.is_running:
-            light_value = self.adc.read(self.adc_channel)
-            print("Light intensity value: {}".format(light_value))
-            if light_value < 50:
-                self.led.write(0)
-                print("Light is weak, turn off LED")
-            else:
-                self.led.write(1)
-                print("Light is strong, turn on LED")
-            utime.sleep_ms(self.sample_ms)
+        """Open ADC and start background monitoring thread."""
+        self._adc.open()
+        self._is_running = True
+        _thread.start_new_thread(self._monitor, ())
 
     def stop(self):
-        """Stop background monitoring thread."""
-        self.is_running = False
+        """Stop monitoring thread and turn off LED."""
+        self._is_running = False
+        if self._led is not None:
+            self._led.write(0)
 
 
 if __name__ == '__main__':
-    light_controller = LightController(
-        led_pin=Pin.GPIO31,
-        sample_ms=500,
-    )
-    light_controller.start()
+    lc = LightController(led_pin=Pin.GPIO31, dark_threshold=200,
+                         led_mode=LightController.MODE_DARK, sample_ms=500)
+    lc.start()
 
-    # Keep main thread alive
     while True:
         utime.sleep_ms(1000)
 ```

@@ -57,28 +57,43 @@ class UltrasonicSensor(object):
     corresponding to round-trip time, distance = pulse_width(us) / 58.0 (cm).
 
     Built-in sliding window filter to reduce measurement noise.
+
+    Example:
+        sensor = UltrasonicSensor(trig_pin=Pin.GPIO30, echo_pin=Pin.GPIO31)
+        dist = sensor.read_filtered_distance()
+        sensor.set_callback(lambda d: print("{}cm".format(d)))
+        sensor.monitor()
+
+    Args:
+        trig_pin:   trigger pin GPIO, default GPIO30
+        echo_pin:   echo pin GPIO, default GPIO31
+        filter_size: sliding window size, default 5
     """
 
     def __init__(self, trig_pin=Pin.GPIO30, echo_pin=Pin.GPIO31, filter_size=5):
-        """Initialize ultrasonic sensor instance.
+        self._trig = Pin(trig_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self._echo = Pin(echo_pin, Pin.IN, Pin.PULL_DISABLE, 0)
+        self._filter_size = filter_size
+        self._dist_list = []
+        self._callback = None
+        self._last_distance = None
 
-        Args:
-            trig_pin: Trigger pin GPIO number, defaults to GPIO30
-            echo_pin: Echo pin GPIO number, defaults to GPIO31
-            filter_size: Sliding window filter size, defaults to 5
-        """
-        self.trig = Pin(trig_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
-        self.echo = Pin(echo_pin, Pin.IN, Pin.PULL_DISABLE, 0)
-        self.filter_size = filter_size
-        self.dist_list = []
+    def set_callback(self, callback):
+        """Set distance callback. callback(distance_cm)"""
+        self._callback = callback
+
+    @property
+    def last_distance(self):
+        """Most recent valid distance in cm."""
+        return self._last_distance
 
     def _trigger(self):
         """Send trigger signal, pull Trig high for >=10us then low."""
-        self.trig.off()
+        self._trig.off()
         utime.sleep_us(2)
-        self.trig.on()
+        self._trig.on()
         utime.sleep_us(10)
-        self.trig.off()
+        self._trig.off()
 
     def read_distance(self):
         """Read single distance measurement with timeout protection.
@@ -89,7 +104,7 @@ class UltrasonicSensor(object):
         self._trigger()
 
         t_out = 0
-        while self.echo.value() == 0 and t_out < 30000:
+        while self._echo.value() == 0 and t_out < 30000:
             t_out += 1
         if t_out >= 30000:
             return None
@@ -97,7 +112,7 @@ class UltrasonicSensor(object):
         start = utime.ticks_us()
 
         t_out = 0
-        while self.echo.value() == 1 and t_out < 500000:
+        while self._echo.value() == 1 and t_out < 500000:
             t_out += 1
         if t_out >= 500000:
             return None
@@ -116,10 +131,12 @@ class UltrasonicSensor(object):
         if raw_dist is None or not 2 <= raw_dist <= 800:
             return None
 
-        self.dist_list.append(raw_dist)
-        if len(self.dist_list) > self.filter_size:
-            self.dist_list.pop(0)
-        return round(sum(self.dist_list) / len(self.dist_list), 2)
+        self._dist_list.append(raw_dist)
+        if len(self._dist_list) > self._filter_size:
+            self._dist_list.pop(0)
+        result = round(sum(self._dist_list) / len(self._dist_list), 2)
+        self._last_distance = result
+        return result
 
     def monitor(self, interval_ms=200):
         """Polling monitor loop, continuously measures and outputs distance."""
@@ -127,6 +144,8 @@ class UltrasonicSensor(object):
             avg_dist = self.read_filtered_distance()
             if avg_dist is not None:
                 print("Current distance: {} cm".format(avg_dist))
+                if self._callback:
+                    self._callback(avg_dist)
             else:
                 print("Out of range or signal error")
             utime.sleep_ms(interval_ms)

@@ -50,67 +50,110 @@ import utime
 class MagneticReedSwitch(object):
     """Magnetic reed switch sensor class (ADC mode), reads magnetic field intensity via analog signal.
 
-    Application scenarios: door/window anti-theft, smart counting, position limit detection, contactless switch, etc.
-    When ADC value exceeds threshold, magnetic field is detected and LED lights up.
+    Example:
+        sensor = MagneticReedSwitch(led_pin=Pin.GPIO31, threshold=100)
+        sensor.set_callback(lambda val: print("magnet!", val))
+        sensor.start()
+
+    Args:
+        adc_channel: ADC channel, default ADC1
+        led_pin:     LED indicator GPIO pin, default GPIO31, pass None to disable
+        threshold:   magnetic field detection threshold, default 100
+        led_on_ms:   LED on duration in ms, default 500 (non-blocking)
     """
 
-    def __init__(self, adc_channel=None, led_pin=Pin.GPIO31, threshold=100):
-        """Initialize magnetic reed switch sensor instance (ADC mode).
+    def __init__(self, adc_channel=None, led_pin=Pin.GPIO31,
+                 threshold=100, led_on_ms=500):
+        self._threshold = threshold
+        self._led_on_ms = led_on_ms
+        self._led = None
+        if led_pin is not None:
+            self._led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self._adc = ADC()
+        self._adc_channel = self._adc.ADC1 if adc_channel is None else adc_channel
+        self._callback = None
+        self._is_running = False
+        self._last_value = 0
+        self._led_off_at = 0
+
+    def set_callback(self, callback):
+        """Set magnetic field detection callback.
 
         Args:
-            adc_channel: ADC channel, defaults to ADC1
-            led_pin: LED indicator GPIO pin number, defaults to GPIO31
-            threshold: Magnetic field intensity threshold, defaults to 100
+            callback: function with signature callback(adc_value)
         """
-        self.threshold = threshold
-        self.led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
-        self.adc = ADC()
-        self.adc_channel = self.adc.ADC1 if adc_channel is None else adc_channel
-        self.is_running = False
+        self._callback = callback
 
-    def open(self):
-        """Open ADC channel."""
-        self.adc.open()
+    @property
+    def threshold(self):
+        return self._threshold
+
+    @threshold.setter
+    def threshold(self, value):
+        self._threshold = value
 
     def read_value(self):
-        """Read current magnetic field ADC value."""
-        return self.adc.read(self.adc_channel)
+        """Read current magnetic field ADC value.
 
-    def handle_magnetic_field(self, value):
-        """Control LED based on magnetic field intensity."""
-        if value > self.threshold:
-            self.led.write(1)
-        else:
-            self.led.write(0)
+        Returns:
+            int: ADC reading
+        """
+        self._last_value = self._adc.read(self._adc_channel)
+        return self._last_value
 
-    def monitor(self):
-        """Background monitoring loop, continuously samples and outputs magnetic field status."""
-        self.is_running = True
-        while self.is_running:
+    def is_detected(self):
+        """Check if magnetic field was detected in last sample.
+
+        Returns:
+            bool: True if detected
+        """
+        return self._last_value > self._threshold
+
+    def _led_on(self):
+        if self._led is not None:
+            self._led.write(1)
+            self._led_off_at = utime.ticks_ms() + self._led_on_ms
+
+    def _led_tick(self):
+        if self._led is not None and self._led_off_at > 0:
+            if utime.ticks_diff(utime.ticks_ms(), self._led_off_at) >= 0:
+                self._led.write(0)
+                self._led_off_at = 0
+
+    def _monitor(self):
+        """Background monitoring loop, non-blocking sampling."""
+        while self._is_running:
             value = self.read_value()
-            status = "Magnetic field detected" if value > self.threshold else "No magnetic field"
-            print("ADC: {} | Status: {}".format(value, status))
-            self.handle_magnetic_field(value)
+
+            if value > self._threshold:
+                self._led_on()
+                if self._callback:
+                    self._callback(value)
+
+            self._led_tick()
             utime.sleep_ms(500)
 
     def start(self):
-        """Start background sampling thread."""
-        self.open()
-        _thread.start_new_thread(self.monitor, ())
+        """Open ADC and start background monitoring thread."""
+        self._adc.open()
+        self._is_running = True
+        _thread.start_new_thread(self._monitor, ())
 
     def stop(self):
-        """Stop background sampling thread."""
-        self.is_running = False
+        """Stop monitoring thread and turn off LED."""
+        self._is_running = False
+        if self._led is not None:
+            self._led.write(0)
 
 
 if __name__ == '__main__':
-    magnetic_reed_switch = MagneticReedSwitch(
-        led_pin=Pin.GPIO31,
-        threshold=100,
-    )
-    magnetic_reed_switch.start()
+    def on_magnet(value):
+        print("Magnetic field detected! ADC = {}".format(value))
 
-    # Keep main thread alive
+    sensor = MagneticReedSwitch(led_pin=Pin.GPIO31, threshold=100)
+    sensor.set_callback(on_magnet)
+    sensor.start()
+
     while True:
         utime.sleep_ms(1000)
 ```
@@ -125,58 +168,109 @@ import utime
 class ReedSwitch(object):
     """Reed switch sensor class (GPIO mode), detects magnetic field state changes via digital signal.
 
-    Application scenarios: door/window anti-theft alarm, liquid level float switch, equipment in-place detection, etc.
-    Common wiring is pull-up input, output low when magnet approaches (triggered).
+    Example:
+        sensor = ReedSwitch(pin=Pin.GPIO31, trigger_level=0, pull=Pin.PULL_PU)
+        sensor.set_callback(lambda triggered: print("triggered!" if triggered else "released"))
+        sensor.monitor(interval_sec=1)
+
+    Args:
+        pin:           GPIO pin number, default GPIO31
+        trigger_level: trigger level, 0=low-trigger, 1=high-trigger, default 0
+        pull:          pull-up/down config, default pull-up (Pin.PULL_PU)
     """
 
     def __init__(self, pin=Pin.GPIO31, trigger_level=0, pull=Pin.PULL_PU):
-        """Initialize reed switch sensor instance (GPIO mode).
+        self._gpio = Pin(pin, Pin.IN, pull)
+        self._trigger_level = trigger_level
+        self._last_state = self._gpio.read()
+        self._callback = None
+        self._trigger_count = 0
+
+    def set_callback(self, callback):
+        """Set state change callback.
 
         Args:
-            pin: GPIO pin number, defaults to GPIO31
-            trigger_level: Trigger level, 0 = low level trigger, 1 = high level trigger, defaults to 0
-            pull: Pull-up/down config, defaults to pull-up (Pin.PULL_PU)
+            callback: function with signature callback(is_triggered)
         """
-        self.gpio = Pin(pin, Pin.IN, pull)
-        self.trigger_level = trigger_level
-        self.last_state = self.gpio.read()
+        self._callback = callback
 
     def read_state(self):
-        """Read current GPIO level state."""
-        return self.gpio.read()
+        """Read current GPIO level state.
+
+        Returns:
+            int: 0 or 1
+        """
+        return self._gpio.read()
 
     def is_triggered(self):
-        """Check if currently in triggered state."""
-        return self.read_state() == self.trigger_level
+        """Check if currently in triggered state (magnetic field detected).
+
+        Returns:
+            bool: True if triggered
+        """
+        return self.read_state() == self._trigger_level
 
     def check_state_change(self):
-        """Detect whether state has changed.
+        """Detect state change and update records.
 
-        Application scenario: door magnetic alarm — door open triggers alarm, door close returns to normal.
+        Returns:
+            tuple: (changed, current_level)
         """
         current = self.read_state()
-        changed = current != self.last_state
-        self.last_state = current
+        changed = current != self._last_state
+        if changed:
+            if current == self._trigger_level:
+                self._trigger_count += 1
+            if self._callback:
+                self._callback(current == self._trigger_level)
+        self._last_state = current
         return changed, current
 
-    def monitor(self, interval_sec=1):
-        """Polling monitor loop, detects and outputs magnetic field state changes."""
+    @property
+    def trigger_count(self):
+        """Get cumulative trigger count."""
+        return self._trigger_count
+
+    def reset_count(self):
+        """Reset trigger count to zero."""
+        self._trigger_count = 0
+
+    def wait_for_trigger(self, timeout_ms=None):
+        """Block and wait for magnetic trigger, with optional timeout.
+
+        Args:
+            timeout_ms: timeout in ms, None for infinite wait
+
+        Returns:
+            bool: True=triggered, False=timeout
+        """
+        start = utime.ticks_ms()
         while True:
             changed, state = self.check_state_change()
+            if changed and state == self._trigger_level:
+                return True
+            if timeout_ms is not None:
+                if utime.ticks_diff(utime.ticks_ms(), start) >= timeout_ms:
+                    return False
+            utime.sleep_ms(10)
 
+    def monitor(self, interval_sec=1):
+        """Polling monitor loop, detects and outputs magnetic field state changes.
+
+        Args:
+            interval_sec: polling interval in seconds, default 1s
+        """
+        while True:
+            changed, state = self.check_state_change()
             if changed:
-                if state == self.trigger_level:
+                if state == self._trigger_level:
                     print("[ReedSwitch] Triggered: magnetic field change detected")
                 else:
                     print("[ReedSwitch] Released: magnetic field back to normal")
-            else:
-                print("[ReedSwitch] Stable: no state change")
-
             utime.sleep(interval_sec)
 
 
 if __name__ == "__main__":
-    # Default pull-up input, low level trigger
     sensor = ReedSwitch(pin=Pin.GPIO31, trigger_level=0, pull=Pin.PULL_PU)
     sensor.monitor(interval_sec=1)
 ```

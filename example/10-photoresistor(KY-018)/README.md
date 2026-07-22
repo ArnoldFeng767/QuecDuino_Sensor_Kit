@@ -42,60 +42,98 @@ import utime
 class LightController(object):
     """光敏电阻控制器类，通过 ADC 读取光照强度并控制 LED。
 
-    传感器特性：光照越强，电阻越小，ADC 值越低；光照越弱，电阻越大，ADC 值越高。
-    应用场景：自动路灯、智能照明、环境光检测等。
+    传感器特性：光照越强，ADC 值越低；光照越弱，ADC 值越高。
+
+    Args:
+        adc_channel:    ADC 通道，默认 ADC1
+        led_pin:        LED 指示 GPIO，默认 GPIO31，传 None 禁用
+        dark_threshold: 低于此值判定为暗，默认 200
+        led_mode:       'dark'=暗时亮灯(自动路灯), 'bright'=亮时亮灯, 'off'=不控灯
+        sample_ms:      采样间隔 ms，默认 500
     """
 
-    def __init__(self, adc_channel=None, led_pin=Pin.GPIO31, sample_ms=500):
-        """初始化光敏电阻控制器。
+    MODE_DARK = 'dark'
+    MODE_BRIGHT = 'bright'
+    MODE_OFF = 'off'
+
+    def __init__(self, adc_channel=None, led_pin=Pin.GPIO31,
+                 dark_threshold=200, led_mode='bright', sample_ms=500):
+        self._dark_threshold = dark_threshold
+        self._led_mode = led_mode
+        self._sample_ms = sample_ms
+        self._led = None
+        if led_pin is not None:
+            self._led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
+        self._adc = ADC()
+        self._adc_channel = self._adc.ADC1 if adc_channel is None else adc_channel
+        self._callback = None
+        self._is_running = False
+        self._last_value = 0
+
+    def set_callback(self, callback):
+        """设置光照变化回调。
 
         Args:
-            adc_channel: ADC 通道，默认使用 ADC1
-            led_pin: LED 指示灯 GPIO 引脚号，默认 GPIO31
-            sample_ms: 采样间隔，单位毫秒，默认 500ms
+            callback: 回调函数，签名 callback(adc_value, is_dark)
         """
-        self.sample_ms = sample_ms
-        self.led = Pin(led_pin, Pin.OUT, Pin.PULL_DISABLE, 0)
-        self.adc = ADC()
-        self.adc_channel = self.adc.ADC1 if adc_channel is None else adc_channel
-        self.is_running = False
+        self._callback = callback
+
+    @property
+    def dark_threshold(self):
+        return self._dark_threshold
+
+    @dark_threshold.setter
+    def dark_threshold(self, value):
+        self._dark_threshold = value
+
+    def read_value(self):
+        """读取当前光照强度 ADC 值。"""
+        self._last_value = self._adc.read(self._adc_channel)
+        return self._last_value
+
+    def is_dark(self):
+        """判断当前环境是否偏暗。"""
+        return self._last_value > self._dark_threshold
+
+    def _update_led(self, value):
+        """根据 led_mode 更新 LED 状态。"""
+        if self._led is None or self._led_mode == self.MODE_OFF:
+            return
+        dark = value > self._dark_threshold
+        if self._led_mode == self.MODE_DARK:
+            self._led.write(1 if dark else 0)
+        elif self._led_mode == self.MODE_BRIGHT:
+            self._led.write(0 if dark else 1)
+
+    def _monitor(self):
+        """后台监控循环。"""
+        while self._is_running:
+            value = self.read_value()
+            dark = self.is_dark()
+            self._update_led(value)
+            print("光照: {} | {}".format(value, "暗" if dark else "亮"))
+            if self._callback:
+                self._callback(value, dark)
+            utime.sleep_ms(self._sample_ms)
 
     def start(self):
         """启动 ADC 并开启后台监控线程。"""
-        self.adc.open()
-        self.is_running = True
-        _thread.start_new_thread(self.monitor, ())
-
-    def monitor(self):
-        """后台监控循环，读取光照强度并根据阈值控制 LED。
-
-        注意：当前逻辑为演示用途（光线弱关灯，光线强开灯）。
-        实际自动路灯场景应反转逻辑：光线弱 → 开灯，光线强 → 关灯。
-        """
-        while self.is_running:
-            light_value = self.adc.read(self.adc_channel)
-            print("光照强度值: {}".format(light_value))
-            if light_value < 50:
-                self.led.write(0)
-                print("光线弱，关闭 LED")
-            else:
-                self.led.write(1)
-                print("光线强，开启 LED")
-            utime.sleep_ms(self.sample_ms)
+        self._adc.open()
+        self._is_running = True
+        _thread.start_new_thread(self._monitor, ())
 
     def stop(self):
-        """停止后台监控线程。"""
-        self.is_running = False
+        """停止后台监控线程并关闭 LED。"""
+        self._is_running = False
+        if self._led is not None:
+            self._led.write(0)
 
 
 if __name__ == '__main__':
-    light_controller = LightController(
-        led_pin=Pin.GPIO31,
-        sample_ms=500,
-    )
-    light_controller.start()
+    lc = LightController(led_pin=Pin.GPIO31, dark_threshold=200,
+                         led_mode=LightController.MODE_DARK, sample_ms=500)
+    lc.start()
 
-    # 主线程保持运行，等待后台监控
     while True:
         utime.sleep_ms(1000)
 ```
